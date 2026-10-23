@@ -2,13 +2,10 @@ package com.gathin.tvhome;
 
 import android.service.dreams.DreamService;
 
-/**
- * Screensaver: the launcher's thin clock and date on black, over a slow ambient glow (ClockScene).
- * No network, no images: cheap enough for a 1 GB TV.
- */
+/** Theme-backed ambient photo frame with a drifting clock and local captions; it needs no network. */
 public class ClockDream extends DreamService {
 
-    private ClockScene scene;
+    private PhotoFrameScene scene;
 
     @Override
     public void onAttachedToWindow() {
@@ -17,7 +14,7 @@ public class ClockDream extends DreamService {
         setFullscreen(true);
         setScreenBright(false);
         setContentView(R.layout.dream_clock);
-        scene = new ClockScene(getWindow().getDecorView());
+        scene = new PhotoFrameScene(this, getWindow().getDecorView().findViewById(R.id.dreamRoot), Config.load(this));
     }
 
     @Override
@@ -34,7 +31,7 @@ public class ClockDream extends DreamService {
 
     @Override
     public void onDetachedFromWindow() {
-        if (scene != null) scene.stop();
+        if (scene != null) scene.close();
         super.onDetachedFromWindow();
     }
 }
