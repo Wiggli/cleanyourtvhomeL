@@ -24,7 +24,6 @@ After ten minutes without remote input on Home, the launcher enters a photo-fram
 - **08, The Inland Sea, Dwejra** — Bellina 09, [source photo](https://commons.wikimedia.org/wiki/File:Inland_sea_at_Dwejra,_Gozo.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **09, Ramla Bay from Calypso Cave** — Diego Delso, [source photo](https://commons.wikimedia.org/wiki/File:Bah%C3%ADa_de_Ramla_desde_la_cueva_de_Calipso,_isla_de_Gozo,_Malta,_2021-08-22,_DD_02.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **10, Wied il-Mielaħ Window** — JosephAmodio, [source photo](https://commons.wikimedia.org/wiki/File:Wied_il-Miela%C4%A7_Window_2.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
-
 - **11, Ta’ Pinu Basilica from the plaza** — Mika500, [source photo](https://commons.wikimedia.org/wiki/File:Basilica_of_the_National_Shrine_of_the_Blessed_Virgin_of_ta_Pinu.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **12, Ta’ Pinu from the countryside** — Petr Pelikan, [source photo](https://commons.wikimedia.org/wiki/File:Basilica_Ta%27Pinu.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **13, Ta’ Pinu and Għarb fields** — Berthold Werner, [source photo](https://commons.wikimedia.org/wiki/File:Malta_Gozo_Ta_Pinu_BW_2011-10-08_10-19-55.JPG), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
@@ -38,4 +37,4 @@ After ten minutes without remote input on Home, the launcher enters a photo-fram
 
 ## Device status
 
-The original Gozo wallpaper set was shown on the Amino GO Amigo7xGM running Android 12 at 1920 × 1080. The expanded collection still needs a fresh on-device screenshot before it can be marked as verified.
+The twenty-image collection was applied to the Amino GO Amigo7xGM running Android 12 at 1920 × 1080, and Home shows the first captioned Ta’ Pinu image. Android has the Clock screensaver component selected, though automatic standby activation still needs on-device confirmation.
