@@ -18,6 +18,7 @@
   "module_cards": true,
   "sky_intensity": 60,
   "wallpaper_rotation_minutes": 4,
+  "home_idle_clock_minutes": 10,
   "wallpaper_order": "sequential",
   "wallpaper_dim": 35,
   "wallpaper_captions": true
