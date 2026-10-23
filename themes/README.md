@@ -16,13 +16,13 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 |---|---|---|
 | `default/` | The built-in look written out as JSON, as a starting point for your own | <img src="default/screenshot.jpg" width="320" alt="default theme"> |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | <img src="aurora/screenshot.jpg" width="320" alt="aurora theme"> |
-| `family-gozo/` | Parents' home theme with Ta' Pinu as the first 1920×1080 wallpaper, and a calm 12-hour rotation to Dwejra; Stremio and GO TV lead the dock | Fresh real-TV preview pending |
+| `family-gozo/` | Parents' home theme with a Family Bartolo greeting, Ta' Pinu as the first 1920×1080 wallpaper, and a calm 12-hour rotation to Dwejra; Stremio and GO TV lead the dock | <img src="family-gozo/screenshot.jpg" width="320" alt="Family Gozo theme running on an Amino GO box"> |
 | `glass/` | Dark navy wallpaper with soft teal and violet light, the cinematic top shelf, a frosted-glass dock, icon-only buttons and the focus glow in the app's colour, gliding without overshoot | <img src="glass/screenshot.jpg" width="320" alt="glass theme"> |
 | `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by `tools/scenes_wallpapers.py` | <img src="scenes/screenshot.jpg" width="320" alt="scenes theme"> |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | <img src="six-columns/screenshot.jpg" width="320" alt="six-columns theme"> |
 
-Where available, screenshots show Home with the theme running on a real TV. `tools/theme.sh` never
-pushes them; they are only here so you can see a theme before you try it.
+Every theme folder has a `screenshot.jpg` of Home with that theme on a real TV. `tools/theme.sh` never
+pushes it; it is only here so you can see a theme before you try it.
 
 ## Keys
 
@@ -95,7 +95,7 @@ is ignored, and a file that doesn't parse is ignored as a whole, so a theme can 
 | `key_filter` | bool | `false` makes the key helpers stop filtering keys while staying enabled. Use it on firmware where any key-filtering accessibility service breaks long-press repeat (TCL Google TV on Android 12): the remote buttons above stop working, and volume repeat comes back |
 | `stock_home_redirect` | string | Stock launcher package; if the firmware turns it back on (XGIMI), its home screen is sent straight back here (`HOME_KEY_SERVICE=1`) |
 | `race_calendar` | list of races | F1 race-weekend mode: from 12 hours before a weekend's first session until 4 hours after the race starts, a panel under the clock shows the next session with a countdown (or the live one) and the weekend's session times in the TV's time zone. Write it with `tools/race_calendar.py <theme folder>`, which fetches the season from the free Jolpica API; the launcher itself never goes online |
-| `home_idle_clock_minutes` | 0 to 1440 | Minutes Home may sit untouched before it shows the clock screensaver (a thin clock and date drifting over a slow glow, as the system "Clock" screensaver does). Any key returns to Home. It starts only from Home, never over Live TV or an app; 0 is off (default) |
+| `home_idle_clock_minutes` | 0 to 1440 | Minutes Home may sit untouched before it shows the photo-frame screensaver, with the theme's rotating wallpapers, captions, and drifting clock. Any key returns to Home. It starts only from Home, never over Live TV or an app; 0 is off (default) |
 | `glow_style` | string | Shape of the glow behind the focused app, in its colour: `radial` (default) or `horizon`, the colour washing down from the top edge to black; the cinematic shelf keeps its own |
 | `cinematic_home` | bool | Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its colour, with a larger name, "Last opened" (apps opened from Home), dock position dots, a focus glow in the app's colour and a translucent dock band; off by default |
 | `dock_even_padding` | bool | The dock band's padding equals the gap between its tiles on all four sides, as far as the grid's edges leave room (`false` by default) |
