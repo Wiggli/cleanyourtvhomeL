@@ -1,6 +1,6 @@
 # Gozo family theme
 
-This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Ten licensed landscape photographs are supplied at 1920 × 1080; the collection advances sequentially every four minutes. The sky backdrop uses intensity 60.
+This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every four minutes. The sky backdrop uses intensity 60.
 
 The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
 
@@ -25,6 +25,17 @@ After ten minutes without remote input on Home, the launcher enters a photo-fram
 - **09, Ramla Bay from Calypso Cave** — Diego Delso, [source photo](https://commons.wikimedia.org/wiki/File:Bah%C3%ADa_de_Ramla_desde_la_cueva_de_Calipso,_isla_de_Gozo,_Malta,_2021-08-22,_DD_02.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **10, Wied il-Mielaħ Window** — JosephAmodio, [source photo](https://commons.wikimedia.org/wiki/File:Wied_il-Miela%C4%A7_Window_2.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
+- **11, Ta’ Pinu Basilica from the plaza** — Mika500, [source photo](https://commons.wikimedia.org/wiki/File:Basilica_of_the_National_Shrine_of_the_Blessed_Virgin_of_ta_Pinu.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **12, Ta’ Pinu from the countryside** — Petr Pelikan, [source photo](https://commons.wikimedia.org/wiki/File:Basilica_Ta%27Pinu.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **13, Ta’ Pinu and Għarb fields** — Berthold Werner, [source photo](https://commons.wikimedia.org/wiki/File:Malta_Gozo_Ta_Pinu_BW_2011-10-08_10-19-55.JPG), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+- **14, Ta’ Pinu at sunset** — Godwin Borg, [source photo](https://commons.wikimedia.org/wiki/File:Ta%27_Pinu_Church_at_Sunset.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **15, Victoria from the Citadel** — Ethan Doyle White, [source photo](https://commons.wikimedia.org/wiki/File:Victoria,_Gozo,_as_seen_from_the_Citadel.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **16, Gozo salt pans at sunset** — Bellina 09, [source photo](https://commons.wikimedia.org/wiki/File:Gozo_Salt_Pans.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **17, Xwejni Bay salt pans** — Marika Caruana, [source photo](https://commons.wikimedia.org/wiki/File:Xwejni_Bay_salt_pans.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+- **18, Xlendi panorama** — Jmasini, [source photo](https://commons.wikimedia.org/wiki/File:Xlendi_panorama.jpg), [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/).
+- **19, Xlendi Bay and cliffs** — VillageHero from Ulm, Germany, [source photo](https://commons.wikimedia.org/wiki/File:View_to_Xlendi,_Gozo_(25662992352).jpg), [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/).
+- **20, Kercem cliffs at sunset** — Slashmalta, [source photo](https://commons.wikimedia.org/wiki/File:Kercem_Cliffs.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
 ## Device status
 
-The previous Gozo wallpaper set was shown on the Amino GO Amigo7xGM running Android 12 at 1920 × 1080. The expanded collection and the current default-style configuration still need a fresh on-device screenshot before they can be marked as verified.
+The original Gozo wallpaper set was shown on the Amino GO Amigo7xGM running Android 12 at 1920 × 1080. The expanded collection still needs a fresh on-device screenshot before it can be marked as verified.

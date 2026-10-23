@@ -16,7 +16,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 |---|---|---|
 | `default/` | The built-in look written out as JSON, as a starting point for your own | <img src="default/screenshot.jpg" width="320" alt="default theme"> |
 | `aurora/` | A dark aurora wallpaper (teal and violet on navy, darker at the bottom) with a matching background colour | <img src="aurora/screenshot.jpg" width="320" alt="aurora theme"> |
-| `family-gozo/` | Parents' home theme with a Family Bartolo greeting, Ta' Pinu as the first 1920×1080 wallpaper, and a calm 12-hour rotation to Dwejra; Stremio and GO TV lead the dock | <img src="family-gozo/screenshot.jpg" width="320" alt="Family Gozo theme running on an Amino GO box"> |
+| `family-gozo/` | Parents' home theme with a 20-photo Gozo collection shared by Home and the clock photo frame; Stremio and GO TV lead the dock | <img src="family-gozo/screenshot.jpg" width="320" alt="Gozo theme running on an Amino GO box"> |
 | `glass/` | Dark navy wallpaper with soft teal and violet light, the cinematic top shelf, a frosted-glass dock, icon-only buttons and the focus glow in the app's colour, gliding without overshoot | <img src="glass/screenshot.jpg" width="320" alt="glass theme"> |
 | `scenes/` | 14 dark illustrated landscapes in `wallpapers/`, a new one every hour; drawn from code by `tools/scenes_wallpapers.py` | <img src="scenes/screenshot.jpg" width="320" alt="scenes theme"> |
 | `six-columns/` | Six smaller tiles per row and one grid row visible under the dock | <img src="six-columns/screenshot.jpg" width="320" alt="six-columns theme"> |
