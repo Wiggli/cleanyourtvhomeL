@@ -171,6 +171,8 @@ final class Config {
     final boolean appGlow;
     /** Minutes Home may sit untouched before the clock screensaver (config.xml, home_idle_clock_minutes); 0 is off. */
     final int homeIdleClockMinutes;
+    /** Whether Home shows a top-bar shortcut to open the photo-frame clock immediately. */
+    final boolean screensaverButton;
     /** The dock band as light frosted glass like the pills (config.xml, dock_glass); false keeps the solid band. */
     final boolean dockGlass;
     /** The dock band's padding equals the gap between its tiles (config.xml, dock_even_padding); false keeps the fixed padding. */
@@ -197,6 +199,7 @@ final class Config {
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, int homeIdleClockMinutes,
+                   boolean screensaverButton,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding) {
         this.handleViewInputs = handleViewInputs;
@@ -267,6 +270,7 @@ final class Config {
         this.ambientGlow = ambientGlow;
         this.appGlow = appGlow;
         this.homeIdleClockMinutes = homeIdleClockMinutes;
+        this.screensaverButton = screensaverButton;
         this.dockGlass = dockGlass;
         this.dockEvenPadding = dockEvenPadding;
         this.glowStyle = glowStyle(glowStyle);
@@ -325,6 +329,7 @@ final class Config {
         boolean wallpaperTrueColor = res.getBoolean(R.bool.wallpaper_true_color);
         boolean focusOvershoot = res.getBoolean(R.bool.focus_overshoot);
         boolean wallpaperCaptions = res.getBoolean(R.bool.wallpaper_captions);
+        boolean screensaverButton = res.getBoolean(R.bool.screensaver_button);
         boolean tileMenu = res.getBoolean(R.bool.tile_menu);
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
@@ -395,6 +400,7 @@ final class Config {
             wallpaperTrueColor = bool(json, "wallpaper_true_color", wallpaperTrueColor);
             focusOvershoot = bool(json, "focus_overshoot", focusOvershoot);
             wallpaperCaptions = bool(json, "wallpaper_captions", wallpaperCaptions);
+            screensaverButton = bool(json, "screensaver_button", screensaverButton);
             tileMenu = bool(json, "tile_menu", tileMenu);
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
@@ -470,7 +476,7 @@ final class Config {
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, stockHomeRedirect, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow,
-                Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding);
+                Math.max(0, idleClockMinutes), screensaverButton, keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding);
     }
 
     /**
