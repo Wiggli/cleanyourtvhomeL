@@ -1,0 +1,24 @@
+{
+  "dock_apps": [
+    "com.stremio.one",
+    "mt.com.go.iptv.android.devices",
+    "com.google.android.youtube.tv"
+  ],
+  "fill_dock": true,
+  "greeting_name": "Family Bartolo",
+  "columns": 4,
+  "rows_below_dock": 0,
+  "dock_title": true,
+  "dock_row": true,
+  "cinematic_home": true,
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 720,
+  "wallpaper_order": "sequential",
+  "wallpaper_dim": 40,
+  "wallpaper_captions": true,
+  "dock_glass": true,
+  "dock_opacity": 70,
+  "ambient_glow": true,
+  "home_idle_clock_minutes": 15,
+  "reduced_motion": true
+}
