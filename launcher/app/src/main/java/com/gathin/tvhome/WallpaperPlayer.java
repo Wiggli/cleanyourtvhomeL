@@ -52,6 +52,11 @@ final class WallpaperPlayer {
     private final Map<String, String> names;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
+        this(context, root, config, false);
+    }
+
+    /** The same theme photos and captions, composed as a full-screen ambient photo frame. */
+    WallpaperPlayer(Context context, FrameLayout root, Config config, boolean photoFrame) {
         this.root = root;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
@@ -75,7 +80,7 @@ final class WallpaperPlayer {
         image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
-        caption = names.isEmpty() ? null : makeCaption(context, root);
+        caption = names.isEmpty() ? null : makeCaption(context, root, photoFrame);
         if (config.wallpaperEnabled && !files.isEmpty()) {
             root.addView(image, 0, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -162,19 +167,16 @@ final class WallpaperPlayer {
         });
     }
 
-    /**
-     * Small light text under the top-right buttons, above everything else and never focusable. It sits where the
-     * top bar ends in every layout, so it does not cover the clock, the stats line or the tiles.
-     */
-    private static TextView makeCaption(Context context, FrameLayout root) {
+    /** Small, non-focusable photo title, placed under the header on Home or at the lower left in photo-frame mode. */
+    private static TextView makeCaption(Context context, FrameLayout root, boolean photoFrame) {
         float dp = context.getResources().getDisplayMetrics().density;
         TextView text = new TextView(context);
-        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, photoFrame ? 24 : 15);
         text.setTextColor(0xD9FFFFFF);
         text.setShadowLayer(6 * dp, 0, dp, 0xCC000000);
         text.setSingleLine(true);
         text.setEllipsize(TextUtils.TruncateAt.END);
-        text.setMaxWidth(Math.round(520 * dp));
+        text.setMaxWidth(Math.round((photoFrame ? 900 : 520) * dp));
         text.setFocusable(false);
         text.setAlpha(0f);
         try {
@@ -183,9 +185,14 @@ final class WallpaperPlayer {
             // the system font is fine
         }
         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-        params.topMargin = Math.round(110 * dp);
-        params.setMarginEnd(Math.round(62 * dp));
+                ViewGroup.LayoutParams.WRAP_CONTENT, photoFrame ? Gravity.BOTTOM | Gravity.START : Gravity.TOP | Gravity.END);
+        if (photoFrame) {
+            params.bottomMargin = Math.round(76 * dp);
+            params.setMarginStart(Math.round(76 * dp));
+        } else {
+            params.topMargin = Math.round(110 * dp);
+            params.setMarginEnd(Math.round(62 * dp));
+        }
         root.addView(text, params);
         return text;
     }
