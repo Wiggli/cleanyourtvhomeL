@@ -1,5 +1,5 @@
-Warning: truncated output (original token count: 39312)
-Total output lines: 3153
+Warning: truncated output (original token count: 39328)
+Total output lines: 3154
 
 package com.gathin.tvhome;
 
@@ -407,7 +407,700 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroMeta = findViewById(R.id.heroMeta);
         heroDots = findViewById(R.id.heroDots);
         heroArt = findViewById(R.id.heroArt);
-     …29312 tokens truncated… (tuned.resolveActivity(getPackageManager()) != null) liveTv = tuned;
+        cinematic = cfg.cinematicHome;
+        glowStyle = cfg.glowStyle;
+        if (cinematic) setUpCinematicShelf();
+        // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
+        // still follows the dock.
+        if (!cfg.dockTitle) hero.setVisibility(View.GONE);
+        greeting = findViewById(R.id.greeting);
+        clockBlock = findViewById(R.id.leftBlock);
+        greetingColor = greeting.getCurrentTextColor();
+        if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
+            // Center Hebrew greetings over the numeric time, independent of a visible AM/PM label.
+            findViewById(R.id.clock).addOnLayoutChangeListener((v, l, t, right, bottom, ol, ot, or, ob) -> {
+                ViewGroup.LayoutParams params = greeting.getLayoutParams();
+                if (params.width != right - l) {
+                    params.width = right - l;
+                    greeting.setLayoutParams(params);
+                }
+                greeting.setTranslationX(l);
+            });
+        }
+        btnWifi = findViewById(R.id.btnWifi);
+        shamsiDate = findViewById(R.id.shamsiDate);
+        stats = findViewById(R.id.stats);
+        raceCalendar = cfg.raceCalendar;
+        racePanel = findViewById(R.id.racePanel);
+        raceKicker = findViewById(R.id.raceKicker);
+        raceHeadline = findViewById(R.id.raceHeadline);
+        raceSessions = findViewById(R.id.raceSessions);
+        showStats = cfg.showStats;
+        shamsi = cfg.shamsiDate;
+        greetingName = cfg.greetingName;
+        if (shamsi) {
+            shamsiDate.setVisibility(View.VISIBLE);
+            TextView date = findViewById(R.id.date);
+            date.setTextSize(11f);
+            date.setPadding(0, (int) (4 * density), 0, 0);
+        }
+        vpnApp = cfg.vpnApp;
+        moduleCards = cfg.moduleCards;
+        hiddenApps = new HashSet<>(cfg.hiddenApps);
+
+        grid = findViewById(R.id.grid);
+        rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
+        // Mirror only the app grid; the header and other locales keep their own layouts.
+        grid.setLayoutManager(new GridLayoutManager(this, COLUMNS) {
+            @Override
+            protected boolean isLayoutRTL() {
+                return rtlAppGrid;
+            }
+
+            /**
+             * Every "bring this tile on screen" scroll lands here, both RecyclerView's own on focus and
+             * onTileFocused's. The stock version treats the grid's top padding as the visible top, but that
+             * padding only pushes the dock down the screen: grid rows scroll up into it. With the stock rule,
+             * Up into a row above the padding dragged that row down to the padding line, cut it off at the
+             * bottom of the screen and could scroll the focused tile out entirely, dropping focus into the
+             * top bar. Grid tiles now scroll just enough to show the rect between the grid's top edge and its
+             * bottom; dock tiles are left to onTileFocused, which parks the dock row on the padding line.
+             */
+            @Override
+            public boolean requestChildRectangleOnScreen(@NonNull RecyclerView parent, @NonNull View child,
+                                                         @NonNull Rect rect, boolean immediate,
+                                                         boolean focusedChildVisible) {
+                if (dockRow && getPosition(child) < COLUMNS) return false;
+                int top = child.getTop() + rect.top;
+                int bottom = top + rect.height();
+                // A row already fully on screen stays put, even inside the bottom padding (the last row
+                // rows_below_dock leaves visible ends there; nudging it up was the bug). A row that has to scroll
+                // in still stops at the padding line, clear of the screen edge, as before.
+                int limitBottom = getHeight() - getPaddingBottom();
+                int dy;
+                if (top < 0) dy = top;
+                else if (bottom <= getHeight()) dy = 0;
+                else dy = Math.min(top, bottom - limitBottom);
+                if (dy == 0) return false;
+                if (immediate || reducedMotion || !animations) parent.scrollBy(0, dy);
+                else parent.smoothScrollBy(0, dy);
+                return true;
+            }
+        });
+        ((GridLayoutManager) grid.getLayoutManager()).setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override public int getSpanSize(int position) { return adapter != null && adapter.isLibraryAt(position) ? COLUMNS : 1; }
+        });
+        grid.setHasFixedSize(true);
+        grid.setItemAnimator(null);
+        // Tiles that scroll out while one is carried come back from the view cache without a rebind; set their
+        // dimming again whenever one attaches, so none stays dim after the drop.
+        grid.addOnChildAttachStateChangeListener(new RecyclerView.OnChildAttachStateChangeListener() {
+            @Override
+            public void onChildViewAttachedToWindow(@NonNull View v) {
+                v.setAlpha(tileAlpha(grid.getChildAdapterPosition(v)));
+            }
+
+            @Override
+            public void onChildViewDetachedFromWindow(@NonNull View v) {
+            }
+        });
+        if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding));
+        // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
+        if (animations && !reducedMotion) {
+            grid.setLayoutAnimation(new LayoutAnimationController(
+                    AnimationUtils.loadAnimation(this, R.anim.tile_enter), 0.06f));
+        }
+        adapter = new AppAdapter(this, this, COLUMNS, cfg);
+        dockApps = cfg.dockApps;
+        fillDockLeavesSlots = !cfg.fillDock;
+        Order savedOrder = Order.load(Order.file(this));
+        adapter.setSavedOrder(Order.ranks(savedOrder, dockApps), Order.docked(savedOrder, dockApps));
+        grid.setAdapter(adapter);
+
+        // tvOS layout: push the dock row towards the bottom of the screen, leaving room for
+        // rows_below_dock grid rows under it; the rest of the grid stays below until you press Down.
+        int rowsBelowDock = cfg.rowsBelowDock;
+        grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            int h = b - t;
+            // Item height follows the tile size, which follows the columns and the rows that must fit (AppAdapter.tileWidthPx).
+            int inner = (r - l) - grid.getPaddingLeft() - grid.getPaddingRight();
+            int tileW = AppAdapter.tileWidthPx(inner, h, COLUMNS, rowsBelowDock, cfg.dockTitle, cfg.dockRow, density);
+            int itemH = AppAdapter.itemHeightPx(AppAdapter.tileHeightPx(tileW), density);
+            int dockRow = itemH + (int) (AppAdapter.DOCK_EXTRA_DP * density);   // item height plus DockDecoration offsets
+            int gridRows = itemH * rowsBelowDock;
+            // Keep the hero below the header when the library is enabled on a short screen,
+            // even when the theme requests an extra visible row below the dock.
+            int shelfClearance = cfg.appLibrary ? hero.getMeasuredHeight() + (int) (40 * density) : 0;
+            int want = Math.max(shelfClearance, h - dockRow - gridRows - (int) (AppAdapter.BOTTOM_ROOM_DP * density));
+            // Where the rows cannot fit even at the smallest tile (3 rows with the title on), the title keeps its
+            // room above the dock and the last rows run off the bottom instead of the title drawing over the clock.
+            if (MainActivity.this.dockRow && cfg.dockTitle && rowsBelowDock > 0) want = Math.max(want, (int) (AppAdapter.TITLE_ROOM_DP * density));
+            // No dock to push down: the grid starts at the top, with room for the first row's zoom and glass.
+            if (!MainActivity.this.dockRow) want = (int) (AppAdapter.TOP_ROOM_DP * density);
+            if (grid.getPaddingTop() != want) {
+                grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
+            }
+            // Cold start or column count > 4: the first focus can run before the grid has its final width or
+            // padding, leaving the glass at the XML design size until a key is pressed.
+            grid.post(this::refitGlass);
+        });
+
+        // Keep the glass glued to its tile while the grid scrolls.
+        grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (!glassShown) return;
+                glassTargetY -= dy;
+                glassScrollShift -= dy;
+                glass.setTranslationY(glass.getTranslationY() - dy);
+            }
+        });
+
+        // Liquid feel: soft springs on the highlight's position.
+        springX = new SpringAnimation(glass, DynamicAnimation.TRANSLATION_X);
+        springY = new SpringAnimation(glass, new FloatPropertyCompat<View>("glassContentY") {
+            @Override
+            public float getValue(View v) {
+                return v.getTranslationY() - glassScrollShift;
+            }
+
+            @Override
+            public void setValue(View v, float value) {
+                v.setTranslationY(value + glassScrollShift);
+            }
+        });
+        for (SpringAnimation s : new SpringAnimation[]{springX, springY}) {
+            if (reducedMotion) {
+                Motion.reduce(s);
+            } else if (!focusOvershoot) {
+                // Critically damped: glides straight onto the tile without swinging past it.
+                s.setSpring(new SpringForce().setStiffness(advancedEffects ? 520f : 440f).setDampingRatio(1f));
+            } else {
+                s.setSpring(new SpringForce().setStiffness(advancedEffects ? 320f : 260f)
+                        .setDampingRatio(advancedEffects ? 0.76f : 0.58f));
+            }
+        }
+
+        btnInputs = findViewById(R.id.btnInputs);
+        View btnSettings = findViewById(R.id.btnSettings);
+        btnScreenSaver = findViewById(R.id.btnScreenSaver);
+        btnScreenSaver.setVisibility(cfg.screensaverButton ? View.VISIBLE : View.GONE);
+        btnInputs.setOnClickListener(v -> showInputs());
+        btnWifi.setOnClickListener(v -> openNetworkPill());
+        btnScreenSaver.setOnClickListener(v -> startActivity(new Intent(this, ClockActivity.class)));
+        btnWifi.setOnLongClickListener(v -> {
+            open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
+            return true;
+        });
+        launcherSettingsButton = cfg.launcherSettingsButton;
+        if (launcherSettingsButton) {
+            ((TextView) btnSettings).setText(R.string.launcher_settings);
+            ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_home_settings_pill, 0, 0, 0);
+        }
+        btnSettings.setOnClickListener(v -> {
+            if (launcherSettingsButton) startActivityForResult(
+                    new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+            else open(systemIntent(Settings.ACTION_SETTINGS));
+        });
+        btnReorder = findViewById(R.id.btnReorder);
+        btnReorder.setOnClickListener(v -> toggleReorder());
+        btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
+        if (!cfg.showNetworkPill) btnWifi.setVisibility(View.GONE);
+        showInputsPill = cfg.showInputsPill;
+        btnLibraryTop = findViewById(R.id.btnLibraryTop);
+        btnLibraryTop.setOnClickListener(v -> {
+            onLibraryRequested();
+            libraryFromTopBar = true;   // closing it goes back to this button, not to the pill after the last row
+        });
+        btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
+        iconOnlyButtons = cfg.iconOnlyButtons;
+        topMenu = cfg.topMenu;
+        wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
+        if (cfg.topMenu) {
+            // One gear: Inputs and Wi-Fi move into its dropdown. The Wi-Fi pill stays hidden but keeps its
+            // label up to date, which the menu's Wi-Fi row shows.
+            showInputsPill = false;
+            btnInputs.setVisibility(View.GONE);
+            btnWifi.setVisibility(View.GONE);
+            ((TextView) btnSettings).setText(R.string.settings);
+            ((TextView) btnSettings).setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_settings, 0, 0, 0);
+            if (!iconOnlyButtons) makeIconOnly((TextView) btnSettings);
+            btnSettings.setOnClickListener(v -> showTopMenu());
+            // The lone gear sits at the header's middle, not on its bottom line like the row of pills.
+            LinearLayout topButtons = findViewById(R.id.topButtons);
+            RelativeLayout.LayoutParams tlp = (RelativeLayout.LayoutParams) topButtons.getLayoutParams();
+            tlp.addRule(RelativeLayout.ALIGN_TOP, R.id.leftBlock);
+            tlp.bottomMargin = 0;
+            topButtons.setLayoutParams(tlp);
+            topButtons.setGravity(Gravity.CENTER_VERTICAL);
+        }
+        if (iconOnlyButtons) {
+            if (cfg.wifiLabelWidth > 0) btnWifi.setMaxWidth(Math.round(cfg.wifiLabelWidth * density));
+            else makeIconOnly(btnWifi);
+            makeIconOnly((TextView) btnSettings);
+        }
+        if (cfg.iconOnlyInputs) makeIconOnly((TextView) btnInputs);
+        btnSettings.setOnLongClickListener(v -> {
+            showSettingsMenu();
+            return true;
+        });
+
+        // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
+        // jump to a tile far below when there is nothing in that direction.
+        boolean rtlMenuBar = getResources().getBoolean(R.bool.rtl_menu_bar);
+        View.OnKeyListener pillKeys = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                // Back to the dock tile Up came from, not wherever the focus finder lands.
+                focusTile(lastFocused % COLUMNS);
+                return true;
+            }
+            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
+            int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
+            return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
+        };
+        btnInputs.setOnKeyListener(pillKeys);
+        btnWifi.setOnKeyListener(pillKeys);
+        btnScreenSaver.setOnKeyListener(pillKeys);
+        btnSettings.setOnKeyListener(pillKeys);
+        btnReorder.setOnKeyListener(pillKeys);
+        btnLibraryTop.setOnKeyListener(pillKeys);
+        if (advancedEffects) {
+            for (View button : new View[]{btnInputs, btnWifi, btnScreenSaver, btnReorder, btnLibraryTop, btnSettings}) {
+                button.setOnFocusChangeListener((view, focused) -> view.animate()
+                        .scaleX(focused ? 1.04f : 1f).scaleY(focused ? 1.04f : 1f)
+                        .setDuration(reducedMotion ? Motion.REDUCED_MS : 160).start());
+            }
+        }
+        if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
+
+        // Hide the glass when focus leaves the tiles.
+        getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
+            boolean onTile = newF != null && newF.getId() == R.id.card;
+            if (!onTile) hideGlass();
+        });
+
+        packageFilter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        packageFilter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        packageFilter.addDataScheme("package");
+        timeFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
+        // Registered for the activity's whole life, not only while it is started: an app installed or updated while
+        // another app is in front must still mark the tiles stale, or Home would have to rebuild on every return.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(packageReceiver, packageFilter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(packageReceiver, packageFilter);
+        }
+
+        ConnectivityManager cm = getSystemService(ConnectivityManager.class);
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        if (tim != null) tim.registerCallback(inputCallback, handler);
+        if (cm != null) {
+            cm.registerDefaultNetworkCallback(networkCallback);
+            cm.registerNetworkCallback(new NetworkRequest.Builder()
+                    .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+                    .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                    .build(), vpnCallback);
+        }
+        // Not after recreate(): the launch intent survives it and would open the settings again.
+        if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent())) openInputsIfAsked(getIntent());
+    }
+
+    /**
+     * handle_view_inputs: switch InputsRequestActivity, the VIEW_INPUTS handler, on or off. It is disabled in the
+     * manifest, so a TV with its own input picker never sees it; only the sets that need it turn it on. Written
+     * only when the state differs, so an ordinary start does not touch the package manager.
+     */
+    private void applyViewInputsHandler(boolean on) {
+        ComponentName handler = new ComponentName(this, InputsRequestActivity.class);
+        PackageManager pm = getPackageManager();
+        int want = on ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DEFAULT;
+        if (pm.getComponentEnabledSetting(handler) != want) {
+            pm.setComponentEnabledSetting(handler, want, PackageManager.DONT_KILL_APP);
+        }
+    }
+
+    /**
+     * VIEW_INPUTS, forwarded by InputsRequestActivity while handle_view_inputs is on: open the Inputs menu once
+     * the pill is on screen. The intent is replaced so a later recreate() does not
+     * open it again. Nothing to do when the TV has no inputs to list (the pill is hidden then).
+     */
+    private boolean openInputsIfAsked(Intent intent) {
+        if (intent == null || !ACTION_VIEW_INPUTS.equals(intent.getAction())) return false;
+        setIntent(new Intent(Intent.ACTION_MAIN));
+        if (btnInputs.getVisibility() != View.VISIBLE) return true;
+        if (btnInputs.isLaidOut()) {
+            btnInputs.requestFocus();
+            showInputs();
+            return true;
+        }
+        // Cold start: the popup anchors to the pill, so wait for the first layout.
+        btnInputs.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                btnInputs.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                btnInputs.post(() -> {
+                    if (isFinishing() || btnInputs.getVisibility() != View.VISIBLE) return;
+                    btnInputs.requestFocus();
+                    showInputs();
+                });
+            }
+        });
+        return true;
+    }
+
+    private boolean openLauncherSettingsIfAsked(Intent intent) {
+        if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
+        setIntent(new Intent(Intent.ACTION_MAIN));
+        startActivityForResult(new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST);
+    …19328 tokens truncated…the connection, and a marigold for Settings that turns when focused.
+     */
+    private void applyFestiveSkin(TextView inputs, TextView settings) {
+        bell = new BellDrawable(density);
+        marigold = new MarigoldDrawable(density);
+        diya = new DiyaDrawable(density);
+        bell.setReducedMotion(reducedMotion);
+        marigold.setReducedMotion(reducedMotion);
+        diya.setReducedMotion(reducedMotion);
+        setFestiveIcon(inputs, bell);
+        setFestiveIcon(btnWifi, diya);
+        setFestiveIcon(settings, marigold);
+        addFocusAction(inputs, bell::ring);
+        addFocusAction(settings, marigold::turn);
+    }
+
+    private static void setFestiveIcon(TextView pill, Drawable icon) {
+        // The pills tint their icons to follow focus; the festive ones keep their own colours.
+        pill.setCompoundDrawableTintList(null);
+        pill.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, null, null, null);
+    }
+
+    /** Runs {@code action} when the view gains focus, keeping any focus listener it already had. */
+    private static void addFocusAction(View view, Runnable action) {
+        View.OnFocusChangeListener previous = view.getOnFocusChangeListener();
+        view.setOnFocusChangeListener((v, focused) -> {
+            if (previous != null) previous.onFocusChange(v, focused);
+            if (focused) action.run();
+        });
+    }
+
+    private void playPetalShower() {
+        if (isFinishing() || isDestroyed()) return;
+        PetalShowerView shower = new PetalShowerView(this);
+        root.addView(shower, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        shower.play(60, 2200, () -> root.removeView(shower));
+    }
+
+    private static int liftTowardsWhite(int argb, float amount) {
+        int r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
+        r += (int) ((255 - r) * amount);
+        g += (int) ((255 - g) * amount);
+        b += (int) ((255 - b) * amount);
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
+    }
+
+    /** The network pill opens the VPN app when one is configured and installed, otherwise Wi-Fi settings. */
+    private void openNetworkPill() {
+        Intent i = vpnApp.isEmpty() ? null : getPackageManager().getLeanbackLaunchIntentForPackage(vpnApp);
+        if (i == null && !vpnApp.isEmpty()) i = getPackageManager().getLaunchIntentForPackage(vpnApp);
+        open(i != null ? i : systemIntent(Settings.ACTION_WIFI_SETTINGS));
+    }
+
+
+    /** Every settings entry shares the standard intent and the vendor fallback (SystemSettings). */
+    private Intent systemIntent(String standardAction) {
+        return SystemSettings.intent(this, standardAction);
+    }
+
+    /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */
+    private void updateInputsButton() {
+        if (!showInputsPill) {
+            btnInputs.setVisibility(View.GONE);
+            return;
+        }
+        boolean any = liveTvIntent() != null || !sourcePanelService.isEmpty()
+                || (coocaaSources && !CoocaaSources.list(this).isEmpty());
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        if (!any && tim != null) {
+            for (TvInputInfo info : tim.getTvInputList()) {
+                // Inputs hidden in Settings > Inputs are left out of the menu, so they don't count here either.
+                if (info.isPassthroughInput() && !info.isHidden(this)) {
+                    any = true;
+                    break;
+                }
+            }
+        }
+        btnInputs.setVisibility(any ? View.VISIBLE : View.GONE);
+    }
+
+    /** boot_to_live_tv: the first time Home comes up after the TV starts, open the Live TV app instead. Once per
+     *  boot, keyed on Settings.Global.BOOT_COUNT, so a later Home press stays on Home. */
+    private boolean openLiveTvAfterBoot() {
+        if (!bootToLiveTv) return false;
+        int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
+        SharedPreferences prefs = getSharedPreferences("boot", MODE_PRIVATE);
+        if (boot < 0 || prefs.getInt("live_tv_boot", -1) == boot) return false;
+        prefs.edit().putInt("live_tv_boot", boot).apply();
+        Intent i = liveTvIntent();
+        if (i == null) return false;
+        open(i);
+        return true;
+    }
+
+    /** The Live TV app's launch intent: its leanback entry point, or the configured action if it has none. */
+    private Intent liveTvIntent() {
+        if (liveTvPkg.isEmpty()) return null;
+        Intent i = getPackageManager().getLeanbackLaunchIntentForPackage(liveTvPkg);
+        if (i != null || liveTvAction.isEmpty()) return i;
+        Intent byAction = new Intent(liveTvAction).setPackage(liveTvPkg);
+        return getPackageManager().resolveActivity(byAction, 0) != null ? byAction : null;
+    }
+
+    /** The TV's own source-selection panel, for TVs that have no TvInputManager (TCL Android TV 9): a
+     *  service, or an activity on sets whose panel is a dialog (BYINTEK U4's QuickSourceActivity). */
+    private void openSourcePanel() {
+        Intent i = new Intent(sourcePanelAction);
+        ComponentName c = ComponentName.unflattenFromString(sourcePanelService);
+        if (c != null) i.setComponent(c);
+        int eq = sourcePanelExtra.indexOf('=');
+        if (eq > 0) {
+            try {
+                i.putExtra(sourcePanelExtra.substring(0, eq).trim(),
+                        Integer.parseInt(sourcePanelExtra.substring(eq + 1).trim()));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        try {
+            if (getPackageManager().resolveActivity(i, 0) != null) {
+                startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            }
+            startService(i);
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void open(Intent i) {
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(i);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** `input_sources` in config.xml: "HW5=23" maps the framework input whose id ends in /HW5 to a vendor
+     *  source number; "HW8=-" leaves that input out of the Inputs menu (a port the board reports but the set
+     *  does not have). Returns the number, -1 for a left-out input, or null when the input is not listed. */
+    private Integer mappedSource(String inputId) {
+        if (inputId == null) return null;
+        String hw = inputId.substring(inputId.lastIndexOf('/') + 1);
+        for (String m : getResources().getStringArray(R.array.input_sources)) {
+            int eq = m.indexOf('=');
+            if (eq <= 0 || !m.substring(0, eq).trim().equals(hw)) continue;
+            String v = m.substring(eq + 1).trim();
+            if (v.equals("-")) return -1;
+            try { return Integer.parseInt(v); } catch (NumberFormatException e) { return null; }
+        }
+        return null;
+    }
+
+    /** Switches to a passthrough input (HDMI, AV). An input mapped in `input_sources` is opened by sending
+     *  `input_action` with its source number as the int extra "input" (Xiaomi China firmware, whose tvplayer
+     *  answers com.xiaomi.mitv.tvplayer.EXTSRC_PLAY and nothing else). Otherwise the standard way is
+     *  ACTION_VIEW on its channel URI, which the Live TV app handles; where nothing takes that, the
+     *  configured `input_action` is sent with the same URI instead (XGIMI's HDMI player only answers
+     *  com.xgimi.action.hdmiPlayer). With `input_uri_scheme` set (YaOS: live-tv) the same URI goes out
+     *  with that scheme and no MIME type. A player guarded by a permission this build does not declare
+     *  throws SecurityException, which used to take Home down with it (YaOS before the manifest asked
+     *  for ACCESS_TV_SOURCE). */
+    private void openInput(String inputId) {
+        Integer source = mappedSource(inputId);
+        if (source != null && source >= 0 && !inputAction.isEmpty()) {
+            try {
+                startActivity(new Intent(inputAction).putExtra("input", source.intValue())
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                return;
+            } catch (ActivityNotFoundException | SecurityException e) {
+                // fall through to the standard way
+            }
+        }
+        Uri uri = TvContract.buildChannelUriForPassthroughInput(inputId);
+        Intent view = (inputUriScheme.isEmpty()
+                ? new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "vnd.android.cursor.item/channel")
+                : new Intent(Intent.ACTION_VIEW, uri.buildUpon().scheme(inputUriScheme).build()))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(view);
+            return;
+        } catch (ActivityNotFoundException | SecurityException e) {
+            if (inputAction.isEmpty()) {
+                Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+        open(new Intent(inputAction).setDataAndType(uri, "vnd.android.cursor.item/channel"));
+    }
+
+    /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
+    private void showInputs() {
+        // A configured source panel and no Live TV row to offer next to it: the panel is the whole menu.
+        // The BYINTEK U4 needs this, as its TvInputManager lists three HDMI ports and an AV input it doesn't have.
+        List<CoocaaSources.Source> coocaa = coocaaSources ? CoocaaSources.list(this) : Collections.emptyList();
+        if (coocaa.isEmpty() && !sourcePanelService.isEmpty() && liveTvIntent() == null) {
+            openSourcePanel();
+            return;
+        }
+        // top_menu: the pill is gone, so the list hangs under the gear, growing inward from the right.
+        // Read the switch, not the pill: show_inputs_pill=false hides the pill too, and there the list
+        // keeps its usual place.
+        boolean underGear = topMenu;
+        View anchor = findViewById(underGear ? R.id.btnSettings : R.id.btnInputs);
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+
+        // Compact: as wide as the Inputs pill (a touch wider so "HDMI 1" fits), hanging right below it.
+        int width = Math.max(anchor.getWidth(), (int) (150 * density));
+        final PopupWindow popup = glassPopup(panel, width);
+
+        TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
+        boolean sawNonHdmi = false;
+        String tunerId = null;
+        boolean tunerIsHw = false;
+        boolean tunerIsAnalog = false;
+        if (tim != null) {
+            List<TvInputInfo> inputs = new ArrayList<>(tim.getTvInputList());
+            // HDMI ports first in port order, then AV and the rest.
+            Collections.sort(inputs, (a, b) -> {
+                boolean ha = a.getType() == TvInputInfo.TYPE_HDMI, hb = b.getType() == TvInputInfo.TYPE_HDMI;
+                if (ha != hb) return ha ? -1 : 1;
+                return String.valueOf(a.loadLabel(this)).compareToIgnoreCase(String.valueOf(b.loadLabel(this)));
+            });
+            // An HDMI-CEC device (an Apple TV, a soundbar) gets an input of its own whose parent is the
+            // port it sits on, so the port and the device would each get a row (Vestel MT7332: "HDMI 1"
+            // and "HDMI Apple TV"). The device takes its port's row instead, and a bare port is listed
+            // only when nothing on it speaks CEC.
+            Set<String> inputIds = new HashSet<>();
+            for (TvInputInfo info : inputs) inputIds.add(info.getId());
+            Map<String, List<TvInputInfo>> cecDevices = new HashMap<>();
+            for (TvInputInfo info : inputs) {
+                String parent = info.getParentId();
+                if (parent == null || !inputIds.contains(parent)) continue;
+                if (!info.isPassthroughInput() || info.isHidden(this)) continue;
+                List<TvInputInfo> onPort = cecDevices.get(parent);
+                if (onPort == null) cecDevices.put(parent, onPort = new ArrayList<>());
+                onPort.add(info);
+            }
+            // Some TVs (Sony) report every HDMI port as connected whether or not anything is plugged in,
+            // so drop the HDMI status then. A TV with every port really in use loses it too.
+            int hdmiPorts = 0, hdmiConnected = 0;
+            for (TvInputInfo info : inputs) {
+                if (!info.isPassthroughInput() || info.getType() != TvInputInfo.TYPE_HDMI) continue;
+                if (info.getParentId() != null && inputIds.contains(info.getParentId())) continue;
+                hdmiPorts++;
+                if (tim.getInputState(info.getId()) == TvInputManager.INPUT_STATE_CONNECTED) hdmiConnected++;
+            }
+            boolean hdmiStateBogus = hdmiPorts > 1 && hdmiConnected == hdmiPorts;
+            for (TvInputInfo info : inputs) {
+                if (info.getType() == TvInputInfo.TYPE_TUNER
+                        && (info.getServiceInfo().applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0
+                        && (liveTvInputId.isEmpty() || liveTvInputId.equals(info.getId()))) {
+                    // Prefer a hardware tuner: the framework names those ".../HW<n>". System apps such as
+                    // AirPlay also register software inputs of type TUNER and may sort first (seen on TCL G05).
+                    // Among tuners of the same kind, skip an analog input when another is present.
+                    // MediaTek names them AnalogInputService and TunerInputService; alphabetical order
+                    // would pick the analog one, and Live TV then opens a dead ATV source.
+                    boolean hw = info.getId().matches(".*/HW\\d+$");
+                    boolean analog = info.getId().toLowerCase(Locale.ROOT).contains("analog");
+                    boolean better = tunerId == null
+                            || (hw && !tunerIsHw)
+                            || (hw == tunerIsHw && tunerIsAnalog && !analog)
+                            || (hw == tunerIsHw && analog == tunerIsAnalog
+                                    && info.getId().compareTo(tunerId) < 0);
+                    if (better) {
+                        tunerId = info.getId();
+                        tunerIsHw = hw;
+                        tunerIsAnalog = analog;
+                    }
+                }
+                // Inputs hidden in the TV's Settings > Inputs stay out of the menu too.
+                if (!info.isPassthroughInput() || info.isHidden(this)) continue;
+                // input_sources can leave out ports the board reports but the set does not have ("HW8=-").
+                if (Integer.valueOf(-1).equals(mappedSource(info.getId()))) continue;
+                // A CEC device's row is added with its port, below.
+                if (info.getParentId() != null && inputIds.contains(info.getParentId())) continue;
+                CharSequence l = info.loadLabel(this);
+                String label = l == null ? info.getId() : l.toString();
+                boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
+                if (hdmi && !label.toUpperCase(Locale.ROOT).contains("HDMI")) label = "HDMI " + label;
+                CharSequence custom = info.loadCustomLabel(this);
+                boolean named = custom != null && custom.length() > 0 && !custom.toString().equals(label);
+                if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);
+                if (!hdmi) sawNonHdmi = true;
+                List<TvInputInfo> devices = cecDevices.get(info.getId());
+                if (devices != null) {
+                    // "Apple TV · HDMI 1": the device's own name (or the one given to it or to its port in
+                    // Settings > Inputs), then the port. Opening the device's input also makes it the CEC
+                    // active source, which wakes it.
+                    for (TvInputInfo device : devices) {
+                        CharSequence name = device.loadCustomLabel(this);
+                        if (name == null || name.length() == 0) name = named ? custom : device.loadLabel(this);
+                        String deviceLabel = name == null || name.length() == 0 ? label : name + " \u00B7 " + label;
+                        final String deviceId = device.getId();
+                        int state = hdmiStateBogus ? -1 : tim.getInputState(deviceId);
+                        addInputRow(rows, popup, R.drawable.ic_input, deviceLabel, state, () -> openInput(deviceId));
+                    }
+                    continue;
+                }
+                // The name given in Settings > Inputs (e.g. "MacBook Pro") goes first, the port after it.
+                if (named) label = custom + " \u00B7 " + label;
+                final String id = info.getId();
+                // Analog AV jacks have no hotplug detection, and some TVs report them as always connected
+                // (TCL Smart TV Pro G03 says "Connected" with nothing plugged in), so AV rows show no state.
+                int state = !hdmi || hdmiStateBogus ? -1 : tim.getInputState(id);
+                addInputRow(rows, popup, hdmi ? R.drawable.ic_input : R.drawable.ic_av, label, state,
+                        () -> openInput(id));
+            }
+        }
+        // Coocaa OS registers nothing with TvInputManager; com.skyworth.tv lists its sources instead.
+        if (rows.getChildCount() == 0) {
+            for (CoocaaSources.Source s : coocaa) {
+                int icon = "HDMI".equals(s.name) ? R.drawable.ic_input
+                        : "VOD".equals(s.name) ? R.drawable.ic_livetv : R.drawable.ic_av;
+                addInputRow(rows, popup, icon, s.label, -1, () -> {
+                    if (!CoocaaSources.open(this, s)) {
+                        Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
+        // Nothing to list where there is no TvInputManager: the TV's own source panel switches inputs.
+        if (rows.getChildCount() == 0 && !sourcePanelService.isEmpty()) {
+            addInputRow(rows, popup, R.drawable.ic_input, getString(R.string.inputs), -1, this::openSourcePanel);
+        }
+        Intent liveTv = liveTvIntent();
+        if (liveTv != null && tunerId != null) {
+            // Tune that input only when the Live TV package itself handles the URI.
+            // The unrestricted input player also resolves it (that is how HDMI opens), but on the
+            // AIWA AI PONT SA that player stays black, and the Live TV package does not handle the
+            // URI at all, which used to toast "Not available on this TV". Keep the leanback activity
+            // then: it is the same path as the Live TV tile. Do not drop the package restriction.
+            // An explicit tuner uses its channel collection (e.g. DVB-S rather than DVB-T/C).
+            // Keep the legacy passthrough route for automatic selection: some OEM players need it.
+            // If the configured input is absent, tunerId stays null and the app opens normally.
+            boolean configured = !liveTvInputId.isEmpty();
+            Intent tuned = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(configured ? TvContract.buildChannelsUriForInput(tunerId)
+                                    : TvContract.buildChannelUriForPassthroughInput(tunerId),
+                            configured ? TvContract.Channels.CONTENT_TYPE : TvContract.Channels.CONTENT_ITEM_TYPE)
+                    .setPackage(liveTvPkg);
+            if (tuned.resolveActivity(getPackageManager()) != null) liveTv = tuned;
         }
         if (liveTv != null) {
             if (rows.getChildCount() > 0) addSeparator(rows);
