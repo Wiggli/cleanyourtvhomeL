@@ -9,8 +9,8 @@ import android.view.View;
 import java.util.Random;
 
 /**
- * The clock screensaver's scene (layout dream_clock): the thin clock and date on black over a slow ambient
- * glow. Every minute the clock drifts to a new spot and the glow shifts colour, so nothing burns in.
+ * The photo-frame screensaver's clock and date over a slow ambient glow. Every minute the clock drifts
+ * to a new spot and the glow shifts colour, so nothing burns in.
  * Shared by ClockDream (the system screensaver) and ClockActivity (Home left idle).
  */
 final class ClockScene {
@@ -78,8 +78,10 @@ final class ClockScene {
         View parent = (View) content.getParent();
         int maxX = Math.max(0, parent.getWidth() - content.getWidth());
         int maxY = Math.max(0, parent.getHeight() - content.getHeight());
-        float x = maxX * (0.1f + 0.8f * random.nextFloat());
-        float y = maxY * (0.1f + 0.8f * random.nextFloat());
+        // Keep the clock in the upper portion of the photo so it does not compete with the location
+        // caption anchored at the lower left, while still drifting enough to protect the display.
+        float x = maxX * (0.08f + 0.58f * random.nextFloat());
+        float y = maxY * (0.08f + 0.25f * random.nextFloat());
         content.setX(x);
         content.setY(y);
         if (parent.getWidth() > 0 && parent.getHeight() > 0) {
