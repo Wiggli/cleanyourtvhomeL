@@ -7,13 +7,13 @@ import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * The clock screensaver shown by Home itself after home_idle_clock_minutes without input. Some TVs' own
+ * The photo-frame screensaver shown by Home itself after home_idle_clock_minutes without input. Some TVs' own
  * screens (CVTE's live TV) do not keep the screen on, so the system screensaver would cut into programmes;
  * this one only ever starts from Home. Any key returns to Home.
  */
 public class ClockActivity extends Activity {
 
-    private ClockScene scene;
+    private PhotoFrameScene scene;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,7 +21,7 @@ public class ClockActivity extends Activity {
         setContentView(R.layout.dream_clock);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE);
-        scene = new ClockScene(getWindow().getDecorView());
+        scene = new PhotoFrameScene(this, findViewById(R.id.dreamRoot), Config.load(this));
     }
 
     @Override
@@ -32,7 +32,7 @@ public class ClockActivity extends Activity {
 
     @Override
     protected void onPause() {
-        scene.stop();
+        scene.close();
         super.onPause();
         finish();   // never left behind in the back stack
     }
