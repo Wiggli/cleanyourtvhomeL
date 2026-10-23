@@ -10,7 +10,7 @@ Apply the theme to an installed launcher with:
 TV_HOST=<parents-tv-ip> tools/theme.sh themes/family-gozo
 ```
 
-The wallpaper collection is centred and cropped to fill 16:9. Its source files are adapted from Wikimedia Commons and resized to 1920 × 1080. Each is distributed under the stated Creative Commons licence; source links below provide the full attribution and licence terms. The photographers and Wikimedia Commons do not endorse this theme.
+After ten minutes without remote input on Home, the launcher enters a photo-frame screensaver using this same collection. It shows each image full-screen with its location caption, plus a clock and date that drift gently to reduce burn-in. The system screensaver picker calls the service **Clock**; select it in Android TV's screensaver settings to use the photo frame during system standby as well. The wallpaper collection is centred and cropped to fill 16:9. Its source files are adapted from Wikimedia Commons and resized to 1920 × 1080. Each is distributed under the stated Creative Commons licence; source links below provide the full attribution and licence terms. The photographers and Wikimedia Commons do not endorse this theme.
 
 ## Wallpaper credits
 
