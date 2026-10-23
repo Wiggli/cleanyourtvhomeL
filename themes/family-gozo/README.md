@@ -1,6 +1,6 @@
 # Family Gozo theme
 
-A parents' home-screen profile for CleanYourTV. It keeps the lightweight launcher, leads with Stremio and GO TV, greets the household as Family Bartolo, and rotates two 1920 × 1080 Gozo photographs every 12 hours. Motion is reduced for a calm, low-load screen.
+A parents' home-screen profile for CleanYourTV. It keeps the lightweight launcher, leads with Stremio and GO TV, and rotates two 1920 × 1080 Gozo photographs every 12 hours. Motion is reduced for a calm, low-load screen.
 
 Verified on an Amino GO Amigo7xGM running Android 12 at 1920 × 1080; the theme screenshot is captured from that device.
 
