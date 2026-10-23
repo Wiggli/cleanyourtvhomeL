@@ -1,2 +1,10 @@
-01-tapinu.jpg	Ta' Pinu Basilica, Gharb, Gozo
-02-dwejra.jpg	Dwejra Tower, Gozo
+01-tapinu.jpg	Ta’ Pinu Basilica, Għarb
+02-dwejra.jpg	Dwejra Tower at sunset
+03-tapinu-pilgrimage.jpg	Ta’ Pinu from Għarb
+04-tapinu-basilica.jpg	Ta’ Pinu Basilica and fields
+05-dwejra-golden-cliffs.jpg	Golden Cliffs of Dwejra
+06-dwejra-tower.jpg	Dwejra Tower and coast
+07-fungus-rock.jpg	Fungus Rock at dusk
+08-inland-sea.jpg	The Inland Sea, Dwejra
+09-ramla-bay.jpg	Ramla Bay from Calypso Cave
+10-wied-il-mielah.jpg	Wied il-Mielaħ Window

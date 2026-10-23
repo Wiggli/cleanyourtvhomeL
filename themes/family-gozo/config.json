@@ -2,22 +2,23 @@
   "dock_apps": [
     "com.stremio.one",
     "mt.com.go.iptv.android.devices",
-    "com.google.android.youtube.tv"
+    "com.google.android.youtube.tv",
+    "io.github.sumyabazar1.weather"
   ],
-  "fill_dock": true,
+  "hidden_apps": [
+    "com.mediatek.wwtv.tvcenter",
+    "com.mitv.gallery"
+  ],
   "columns": 4,
   "rows_below_dock": 0,
-  "dock_title": true,
-  "dock_row": true,
-  "cinematic_home": true,
+  "reduced_motion": false,
+  "background_color": "#000000",
   "wallpaper": true,
-  "wallpaper_rotation_minutes": 720,
+  "fill_dock": false,
+  "module_cards": true,
+  "sky_intensity": 60,
+  "wallpaper_rotation_minutes": 4,
   "wallpaper_order": "sequential",
-  "wallpaper_dim": 40,
-  "wallpaper_captions": true,
-  "dock_glass": true,
-  "dock_opacity": 70,
-  "ambient_glow": true,
-  "home_idle_clock_minutes": 15,
-  "reduced_motion": true
+  "wallpaper_dim": 35,
+  "wallpaper_captions": true
 }
