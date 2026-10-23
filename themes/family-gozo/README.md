@@ -1,6 +1,6 @@
 # Gozo family theme
 
-This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every four minutes. The sky backdrop uses intensity 60.
+This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every minute. The sky backdrop uses intensity 60.
 
 The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
 
@@ -10,7 +10,9 @@ Apply the theme to an installed launcher with:
 TV_HOST=<parents-tv-ip> tools/theme.sh themes/family-gozo
 ```
 
-After ten minutes without remote input on Home, the launcher enters a photo-frame screensaver using this same collection. It shows each image full-screen with its location caption, plus a clock and date that drift gently to reduce burn-in. The system screensaver picker calls the service **Clock**; select it in Android TV's screensaver settings to use the photo frame during system standby as well. The wallpaper collection is centred and cropped to fill 16:9. Its source files are adapted from Wikimedia Commons and resized to 1920 × 1080. Each is distributed under the stated Creative Commons licence; source links below provide the full attribution and licence terms. The photographers and Wikimedia Commons do not endorse this theme.
+After ten minutes without remote input on Home, the launcher enters a photo-frame screensaver using this same collection. A small picture-frame button beside Wi-Fi opens it immediately. It shows each image full-screen with its location caption, plus a clock and date that drift gently to reduce burn-in. The system screensaver picker calls the service **Clock**; select it in Android TV's screensaver settings to use the photo frame during system standby as well. The wallpaper collection is centred and cropped to fill 16:9. Its source files are adapted from Wikimedia Commons and resized to 1920 × 1080. Each is distributed under the stated Creative Commons licence; source links below provide the full attribution and licence terms. The photographers and Wikimedia Commons do not endorse this theme.
+
+For iPhone casting, install the separate [AirPlay Server](https://github.com/jqssun/android-airplay-server) app on the TV, open it, then use Control Centre on the iPhone to choose **Screen Mirroring** and select the TV receiver. It supports screen mirroring, photos, video and audio on Android TV; DRM-protected video is not supported. Both devices need to be on the same local network. The receiver only advertises while its app is open.
 
 ## Wallpaper credits
 

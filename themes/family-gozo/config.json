@@ -3,7 +3,8 @@
     "com.stremio.one",
     "mt.com.go.iptv.android.devices",
     "com.google.android.youtube.tv",
-    "io.github.sumyabazar1.weather"
+    "io.github.sumyabazar1.weather",
+    "io.github.jqssun.airplay"
   ],
   "hidden_apps": [
     "com.mediatek.wwtv.tvcenter",
@@ -17,7 +18,7 @@
   "fill_dock": false,
   "module_cards": true,
   "sky_intensity": 60,
-  "wallpaper_rotation_minutes": 4,
+  "wallpaper_rotation_minutes": 1,
   "home_idle_clock_minutes": 10,
   "wallpaper_order": "sequential",
   "wallpaper_dim": 35,
