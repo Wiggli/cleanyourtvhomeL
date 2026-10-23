@@ -1,6 +1,6 @@
 # Gozo family theme
 
-This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every minute. The sky backdrop uses intensity 60.
+This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Optional Google media apps are hidden from the launcher while their packages remain installed. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every minute. The sky backdrop uses intensity 60.
 
 The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
 
