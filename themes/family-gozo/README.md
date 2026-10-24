@@ -1,8 +1,10 @@
 # Gozo family theme
 
-This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Optional Google media apps are hidden from the launcher while their packages remain installed. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every minute. The sky backdrop uses intensity 60.
+This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and optional family add-ons for Weather and Football. Stremio and GO TV remain at the front of the dock. Optional Google media apps are hidden from the launcher while their packages remain installed. Twenty licensed landscape photographs are supplied at 1920 × 1080; the home screen and clock photo frame share this collection, which advances sequentially every minute. The sky backdrop uses intensity 60.
 
 The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
+
+The Gozo Football add-on lives in [`addons/gozo-football/`](../../addons/gozo-football/) and is intentionally separate from the launcher. Install it only on this TV when wanted. Home discovers its normal module card and asks once whether to show it; other TVs and themes are unaffected unless the add-on is separately installed there. It follows Manchester United, AC Milan, England and Italy and opens a translucent Apple-style match centre over the Gozo home background with the next fixture, countdown, upcoming matches and latest result. The launcher's module-card contract keeps the Home label static, so live fixture data appears inside the opened football panel rather than being injected into launcher UI.
 
 Apply the theme to an installed launcher with:
 
@@ -39,4 +41,4 @@ For iPhone casting, install the separate [AirPlay Server](https://github.com/jqs
 
 ## Device status
 
-The twenty-image collection was applied to the Amino GO Amigo7xGM running Android 12 at 1920 × 1080, and Home shows the first captioned Ta’ Pinu image. Android has the Clock screensaver component selected, though automatic standby activation still needs on-device confirmation.
+The twenty-image collection was applied to the Amino GO Amigo7xGM running Android 12 at 1920 × 1080, and Home shows the first captioned Ta’ Pinu image. Android has the Clock screensaver component selected, though automatic standby activation still needs on-device confirmation. The Gozo Football add-on source is prepared but remains untested on the physical box until it is built and pushed there.
