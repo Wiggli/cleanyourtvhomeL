@@ -20,6 +20,7 @@
   "background_color": "#000000",
   "wallpaper": true,
   "fill_dock": false,
+  "dock_glass": true,
   "module_cards": true,
   "sky_intensity": 60,
   "wallpaper_rotation_minutes": 1,
