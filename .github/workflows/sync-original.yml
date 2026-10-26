@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Rebuild from upstream while keeping the Gozo theme
+      - name: Rebuild from upstream with the fork theme and content shelf
         id: prepare
         shell: bash
         run: |
@@ -41,7 +41,7 @@ jobs:
           common=$(git merge-base origin/main upstream/main)
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              themes/family-gozo/*|themes/README.md|README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              themes/family-gozo/*|themes/README.md|README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml|.github/fork-patches/apply-content-rows.py|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|launcher/app/src/main/java/com/gathin/tvhome/ContentRows.java) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
@@ -52,8 +52,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach upstream/main
-          git checkout origin/main -- themes/family-gozo .github/workflows/sync-original.yml
+          git checkout origin/main -- themes/family-gozo .github/workflows/sync-original.yml .github/fork-patches/apply-content-rows.py launcher/app/src/main/java/com/gathin/tvhome/ContentRows.java
           git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
+          python3 .github/fork-patches/apply-content-rows.py
 
           python3 - <<'PY'
           from pathlib import Path
@@ -93,13 +94,13 @@ jobs:
           git add -A
           git diff --cached --check
           tree=$(git write-tree)
-          merge_commit=$(printf 'Sync upstream main and keep the Gozo theme\n' |
+          merge_commit=$(printf 'Sync upstream main and keep fork theme and content shelf\n' |
             git commit-tree "$tree" -p origin/main -p upstream/main)
           git reset --hard "$merge_commit"
           git push --force origin HEAD:refs/heads/sync/automatic-candidate
           echo "sha=$merge_commit" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "Prepared $merge_commit from upstream with only the Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
+          echo "Prepared $merge_commit from upstream with the Gozo theme, content shelf and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
 
   test:
     needs: prepare
