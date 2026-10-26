@@ -43,10 +43,11 @@ final class ContentRows {
     static final int PERMISSION_REQUEST = 409;
     private static final String TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS";
     private static final String STREMIO = "com.stremio.one";
-    private static final int MAX_ITEMS = 12;
+    private static final int MAX_ITEMS = 8;
     private final Activity activity;
     private final LinearLayout panel;
     private final LinearLayout tabs;
+    private final HorizontalScrollView scroller;
     private final LinearLayout cards;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -54,10 +55,12 @@ final class ContentRows {
     private int generation;
     private boolean closed;
 
-    private ContentRows(Activity activity, LinearLayout panel, LinearLayout tabs, LinearLayout cards) {
+    private ContentRows(Activity activity, LinearLayout panel, LinearLayout tabs,
+                        HorizontalScrollView scroller, LinearLayout cards) {
         this.activity = activity;
         this.panel = panel;
         this.tabs = tabs;
+        this.scroller = scroller;
         this.cards = cards;
     }
 
@@ -82,7 +85,7 @@ final class ContentRows {
         panel.addView(scroller, new LinearLayout.LayoutParams(-1, dp(activity, 169)));
         column.addView(panel, column.indexOfChild(wrapper) + 1,
                 new LinearLayout.LayoutParams(-1, -2));
-        return new ContentRows(activity, panel, tabs, cards);
+        return new ContentRows(activity, panel, tabs, scroller, cards);
     }
 
     private static boolean enabled(Activity activity) {
@@ -122,6 +125,7 @@ final class ContentRows {
 
     private void showPermissionButton() {
         panel.setVisibility(View.VISIBLE);
+        scroller.setVisibility(View.GONE);
         tabs.removeAllViews();
         cards.removeAllViews();
         TextView button = label("Enable Stremio rows", 15);
@@ -180,6 +184,7 @@ final class ContentRows {
         cards.removeAllViews();
         panel.setVisibility(categories.isEmpty() ? View.GONE : View.VISIBLE);
         if (categories.isEmpty()) return;
+        scroller.setVisibility(View.VISIBLE);
         for (String name : categories.keySet()) {
             TextView tab = label(name, 15);
             tab.setFocusable(true);
@@ -295,8 +300,8 @@ final class ContentRows {
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null;
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 1;
-        while (bounds.outWidth / options.inSampleSize > 400
-                || bounds.outHeight / options.inSampleSize > 500) options.inSampleSize *= 2;
+        while (bounds.outWidth / options.inSampleSize > 250
+                || bounds.outHeight / options.inSampleSize > 350) options.inSampleSize *= 2;
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
     }
 
