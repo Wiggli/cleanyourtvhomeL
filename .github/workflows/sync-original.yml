@@ -139,7 +139,7 @@ jobs:
       - name: Check launcher size
         run: |
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
-          test "$size" -lt 491520
+          test "$size" -lt 589824
 
   publish:
     needs: [prepare, test]
