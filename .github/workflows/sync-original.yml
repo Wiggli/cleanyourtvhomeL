@@ -1,0 +1,96 @@
+name: Sync original CleanYourTV
+
+on:
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-original-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'Wiggli/cleanyourtvhomeL'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch original repository and refresh review branch
+        run: |
+          git remote add upstream https://github.com/Gathin23/cleanyourtv.git
+          git fetch --no-tags upstream main
+          git push --force origin FETCH_HEAD:refs/heads/sync/upstream-main
+
+      - name: Merge into a temporary branch when there are no conflicts
+        id: merge
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C sync-candidate origin/main
+          if git merge-base --is-ancestor upstream/main HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The fork already contains upstream main." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if git merge --no-ff --no-edit upstream/main; then
+            if test -e .github/workflows/maintainer-bot.yml; then
+              echo "::error::The original maintainer bot would be restored; review the upstream changes first."
+              exit 1
+            fi
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Upstream has merge conflicts. The sync/upstream-main pull request has been refreshed for review." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.merge.outputs.changed == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Test lists, tools and docs
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          CLEANYOURTV_STRICT: "1"
+        run: |
+          python3 -m venv tools/venv
+          tools/venv/bin/pip install -q -r tools/requirements.txt
+          python3 -m unittest discover -s tests -v
+
+      - uses: actions/setup-java@v4
+        if: steps.merge.outputs.changed == 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        if: steps.merge.outputs.changed == 'true'
+        with:
+          packages: platforms;android-34 build-tools;34.0.0
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.merge.outputs.changed == 'true'
+
+      - name: Test and build launcher
+        if: steps.merge.outputs.changed == 'true'
+        working-directory: launcher
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
+
+      - name: Check launcher size
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
+          test "$size" -lt 491520
+
+      - name: Update fork main
+        if: steps.merge.outputs.changed == 'true'
+        run: git push origin HEAD:main
