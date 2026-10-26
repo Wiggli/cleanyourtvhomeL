@@ -74,13 +74,17 @@ class TV:
             if here not in sys.path:
                 sys.path.insert(0, here)
             # tv.py reads its target from the environment when imported, including CLI overrides here.
-            os.environ["TV_HOST"], os.environ["TV_PORT"] = self.host, str(self.port)
+            os.environ["TV_HOST"], os.environ["TV_PORT"] = str(self.host), str(self.port)
             try:
                 import tv as tv_client  # noqa: E402
             except ModuleNotFoundError as e:
                 raise SystemExit(f"bench.py needs {e.name}: python3 -m venv tools/venv && "
                                  "tools/venv/bin/pip install -r tools/requirements.txt") from e
-            tv_client.HOST, tv_client.PORT = self.host, int(self.port)
+            # Read back the target tv.py made of that environment: it splits `host:port` and refuses a
+            # port outside 1..65535 there. Overriding these from the arguments (as this did) put the
+            # `:port` back into the host, so `--host 192.0.2.20:5877` asked for a machine of that name.
+            self.host, self.port = tv_client.HOST, tv_client.PORT
+            self.serial = f"{self.host}:{self.port}"
             self.client = tv_client.connect()
         return self.client
 
@@ -373,11 +377,16 @@ def cold_start(tv, component, repeats):
     services = accessibility_services(tv, package)
     try:
         for _ in range(repeats):
-            tv.shell(f"am start -W -n {other}")
+            # Reuse Settings even if its task was first opened with ACTION_SETTINGS.
+            # A component-only start can otherwise stack another activity on every run.
+            tv.shell(f"am start -W --activity-reorder-to-front -n {other}")
             time.sleep(2)
             tv.shell(f"am force-stop {package}")
             time.sleep(3)
-            out = tv.shell(f"am start -W -n {component}")
+            # An explicit component alone creates a regular task. Start the HOME task,
+            # so the next Home press cannot create a second launcher instance.
+            out = tv.shell(f"am start -W -a android.intent.action.MAIN "
+                           f"-c android.intent.category.HOME -n {component}")
             match = re.search(r"WaitTime:\s*(\d+)", out)
             if match:
                 values.append(int(match.group(1)))
@@ -394,16 +403,19 @@ def return_to_home(tv, component, repeats):
     if not other:
         print("Could not find another app to switch to; the return to Home is not measured.")
         return values
-    # The event log writes the activity as "am_on_resume_called: [0,pkg.Class,action]", so the
-    # class name (the part after the slash) is what identifies the launcher there.
+    # AM/WM resume events identify the activity by its full class name, even when the
+    # resolved component abbreviates it as pkg/.Class.
     class_name = component.split("/", 1)[1] if "/" in component else component
+    if class_name.startswith("."):
+        class_name = component.split("/", 1)[0] + class_name
     for _ in range(repeats):
-        tv.shell(f"am start -W -n {other}")
+        tv.shell(f"am start -W --activity-reorder-to-front -n {other}")
         time.sleep(3)
         clear_log(tv)
         tv.shell("input keyevent 3")
         time.sleep(3)
-        out = tv.shell("logcat -d -b main -b events -v epoch | grep -e injectKeyEvent -e am_on_resume_called")
+        out = tv.shell("logcat -d -b main -b events -v epoch | grep -e injectKeyEvent "
+                       "-e am_on_resume_called -e wm_on_resume_called")
         key_at = resume_at = None
         for line in out.splitlines():
             # The log indents its lines, so the timestamp is not at the start of the line.
@@ -416,8 +428,9 @@ def return_to_home(tv, component, repeats):
                     key_at = float(stamp.group(1))
             # The LAST resume of the launcher after the key, not the first: the buffer can
             # still hold a resume from before the key was pressed.
-            if "am_on_resume_called" in line and class_name in line and stamp:
-                if key_at is None or float(stamp.group(1)) >= key_at:
+            resumed = re.search(r"\b(?:am|wm)_on_resume_called:\s*\[[^,]*,\s*([^,]+),", line)
+            if resumed and resumed.group(1).strip() == class_name and stamp and key_at is not None:
+                if float(stamp.group(1)) >= key_at:
                     resume_at = float(stamp.group(1))
         if key_at is not None and resume_at is not None:
             values.append(int((resume_at - key_at) * 1000))
@@ -496,8 +509,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--host", default=os.environ.get("TV_HOST"),
-                        help="TV address (or set TV_HOST)")
-    parser.add_argument("--port", type=int, default=int(os.environ.get("TV_PORT", "5555")))
+                        help="TV address, IP or IP:port (or set TV_HOST)")
+    # Left as typed: tools/tv.py parses TV_HOST/TV_PORT when TV._connect imports it, refuses a port that
+    # is not 1..65535 there, and splits the port out of the address. int() here ran before any of that,
+    # so TV_PORT=abc (or an empty TV_PORT, which tools/tv.py reads as 5555) was a ValueError traceback.
+    parser.add_argument("--port", default=os.environ.get("TV_PORT") or "5555",
+                        help="the TV's ADB port (or set TV_PORT); default 5555")
     parser.add_argument("--keys", type=int, default=36, help="keys per series")
     parser.add_argument("--series", type=int, default=3, help="how many series")
     parser.add_argument("--cold", type=int, default=5, help="cold starts")

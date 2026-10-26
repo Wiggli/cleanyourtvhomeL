@@ -16,47 +16,77 @@ jobs:
   sync:
     if: github.repository == 'Wiggli/cleanyourtvhomeL'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Fetch original repository and refresh review branch
+      - name: Rebuild from upstream while keeping the Gozo theme
+        id: prepare
+        shell: bash
         run: |
+          set -euo pipefail
           git remote add upstream https://github.com/Gathin23/cleanyourtv.git
           git fetch --no-tags upstream main
-          git push --force origin FETCH_HEAD:refs/heads/sync/upstream-main
+          git fetch --no-tags origin main
 
-      - name: Merge into a temporary branch when there are no conflicts
-        id: merge
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -C sync-candidate origin/main
-          if git merge-base --is-ancestor upstream/main HEAD; then
+          if git merge-base --is-ancestor upstream/main origin/main; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "The fork already contains upstream main." >> "$GITHUB_STEP_SUMMARY"
+            echo "The fork already contains the current upstream main." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          if git merge --no-ff --no-edit upstream/main; then
-            if test -e .github/workflows/maintainer-bot.yml; then
-              echo "::error::The original maintainer bot would be restored; review the upstream changes first."
-              exit 1
-            fi
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            git merge --abort
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Upstream has merge conflicts. The sync/upstream-main pull request has been refreshed for review." >> "$GITHUB_STEP_SUMMARY"
-          fi
+
+          common=$(git merge-base origin/main upstream/main)
+          while IFS= read -r changed_path; do
+            case "$changed_path" in
+              themes/family-gozo/*|themes/README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              *)
+                echo "::error::Unexpected fork change outside the theme: $changed_path"
+                exit 1
+                ;;
+            esac
+          done < <(git diff --name-only "$common" origin/main)
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --detach upstream/main
+          git checkout origin/main -- themes/family-gozo .github/workflows/sync-original.yml
+          git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          row = '| `family-gozo/` | Twenty Gozo photographs rotating on Home, a frosted dock led by Stremio and GO TV, and Weather and AirPlay shortcuts | <img src="family-gozo/screenshot.jpg" width="320" alt="Gozo theme on an Amino GO box"> |'
+          index = Path("themes/README.md")
+          lines = [line for line in index.read_text(encoding="utf-8").splitlines()
+                   if not line.startswith("| `family-gozo/` |")]
+          default = next(i for i, line in enumerate(lines) if line.startswith("| `default/` |"))
+          lines.insert(default + 1, row)
+          index.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          agents = Path("AGENTS.md")
+          text = agents.read_text(encoding="utf-8")
+          agents.write_text(text.replace("`maintainer-bot.yml`", "`sync-original.yml`"),
+                            encoding="utf-8")
+          PY
+
+          git add -A
+          git diff --cached --check
+          tree=$(git write-tree)
+          merge_commit=$(printf 'Sync upstream main and keep the Gozo theme\n' |
+            git commit-tree "$tree" -p origin/main -p upstream/main)
+          git reset --hard "$merge_commit"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "Prepared $merge_commit from upstream with only the Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/setup-python@v5
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         with:
           python-version: "3.12"
 
-      - name: Test lists, tools and docs
-        if: steps.merge.outputs.changed == 'true'
+      - name: Test lists, tools, docs and themes
+        if: steps.prepare.outputs.changed == 'true'
         env:
           CLEANYOURTV_STRICT: "1"
         run: |
@@ -65,32 +95,32 @@ jobs:
           python3 -m unittest discover -s tests -v
 
       - uses: actions/setup-java@v4
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         with:
           distribution: temurin
           java-version: "17"
 
       - uses: android-actions/setup-android@v3
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         with:
           packages: platforms;android-34 build-tools;34.0.0
 
       - uses: gradle/actions/setup-gradle@v4
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
 
       - name: Test and build launcher
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         working-directory: launcher
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
 
       - name: Check launcher size
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         run: |
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           test "$size" -lt 491520
 
       - name: Update fork main
-        if: steps.merge.outputs.changed == 'true'
+        if: steps.prepare.outputs.changed == 'true'
         run: git push origin HEAD:main

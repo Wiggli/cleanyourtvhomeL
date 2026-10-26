@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Photo-frame screensaver: theme images with location caption, a drifting clock, and a dark text scrim. -->
+<!-- Screensaver (ClockDream): clock and date that drift around a black screen over an ambient glow. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/dreamRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <View
+    <!-- The glow is its background; clock_wallpaper puts the picture in it, cropped like Home's. -->
+    <ImageView
         android:id="@+id/dreamAmbient"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no" />
 
     <LinearLayout
         android:id="@+id/dreamContent"
