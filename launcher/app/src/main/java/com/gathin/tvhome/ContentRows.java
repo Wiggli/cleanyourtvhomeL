@@ -1,6 +1,5 @@
 package com.gathin.tvhome;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,7 +15,6 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -43,6 +41,7 @@ import java.util.concurrent.Executors;
  */
 final class ContentRows {
     static final int PERMISSION_REQUEST = 409;
+    private static final String TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS";
     private static final String STREMIO = "com.stremio.one";
     private static final int MAX_ITEMS = 12;
     private final Activity activity;
@@ -104,7 +103,7 @@ final class ContentRows {
 
     void refresh() {
         if (closed) return;
-        if (activity.checkSelfPermission(Manifest.permission.READ_TV_LISTINGS)
+        if (activity.checkSelfPermission(TV_LISTINGS_PERMISSION)
                 != PackageManager.PERMISSION_GRANTED) {
             showPermissionButton();
             return;
@@ -130,7 +129,7 @@ final class ContentRows {
         button.setPadding(dp(16), dp(8), dp(16), dp(8));
         button.setBackground(background(false));
         button.setOnClickListener(v -> activity.requestPermissions(
-                new String[]{Manifest.permission.READ_TV_LISTINGS}, PERMISSION_REQUEST));
+                new String[]{TV_LISTINGS_PERMISSION}, PERMISSION_REQUEST));
         tabs.addView(button);
     }
 
@@ -320,6 +319,10 @@ final class ContentRows {
 
     private static int dp(Activity activity, int value) {
         return (int) (value * activity.getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private int dp(int value) {
+        return dp(activity, value);
     }
 
     void close() {
