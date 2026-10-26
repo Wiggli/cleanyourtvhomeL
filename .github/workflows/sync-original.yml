@@ -5,18 +5,19 @@ on:
     - cron: "23 6 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 concurrency:
   group: sync-original-main
   cancel-in-progress: false
 
 jobs:
-  sync:
+  prepare:
     if: github.repository == 'Wiggli/cleanyourtvhomeL'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.prepare.outputs.changed }}
+      sha: ${{ steps.prepare.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,7 +41,7 @@ jobs:
           common=$(git merge-base origin/main upstream/main)
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              themes/family-gozo/*|themes/README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              themes/family-gozo/*|themes/README.md|README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
@@ -56,6 +57,7 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           row = '| `family-gozo/` | Twenty Gozo photographs rotating on Home, a frosted dock led by Stremio and GO TV, and Weather and AirPlay shortcuts | <img src="family-gozo/screenshot.jpg" width="320" alt="Gozo theme on an Amino GO box"> |'
           index = Path("themes/README.md")
@@ -64,6 +66,23 @@ jobs:
           default = next(i for i, line in enumerate(lines) if line.startswith("| `default/` |"))
           lines.insert(default + 1, row)
           index.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          front = Path("README.md")
+          lines = front.read_text(encoding="utf-8").splitlines()
+          count = sum((folder / "config.json").is_file() for folder in Path("themes").iterdir()
+                      if folder.is_dir())
+          for i, line in enumerate(lines):
+              if line.startswith("| **Themes** |"):
+                  updated, matches = re.subn(
+                      r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+ship\b",
+                      f"{count} ship", line, count=1, flags=re.IGNORECASE)
+                  if matches != 1:
+                      raise RuntimeError("The front-page theme count could not be updated")
+                  lines[i] = updated
+                  break
+          else:
+              raise RuntimeError("The front-page Themes row is missing")
+          front.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
           agents = Path("AGENTS.md")
           text = agents.read_text(encoding="utf-8")
@@ -77,50 +96,65 @@ jobs:
           merge_commit=$(printf 'Sync upstream main and keep the Gozo theme\n' |
             git commit-tree "$tree" -p origin/main -p upstream/main)
           git reset --hard "$merge_commit"
+          git push --force origin HEAD:refs/heads/sync/automatic-candidate
+          echo "sha=$merge_commit" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "Prepared $merge_commit from upstream with only the Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
 
+  test:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
-        if: steps.prepare.outputs.changed == 'true'
         with:
           python-version: "3.12"
-
       - name: Test lists, tools, docs and themes
-        if: steps.prepare.outputs.changed == 'true'
         env:
           CLEANYOURTV_STRICT: "1"
         run: |
           python3 -m venv tools/venv
           tools/venv/bin/pip install -q -r tools/requirements.txt
           python3 -m unittest discover -s tests -v
-
       - uses: actions/setup-java@v4
-        if: steps.prepare.outputs.changed == 'true'
         with:
           distribution: temurin
           java-version: "17"
-
       - uses: android-actions/setup-android@v3
-        if: steps.prepare.outputs.changed == 'true'
         with:
           packages: platforms;android-34 build-tools;34.0.0
-
       - uses: gradle/actions/setup-gradle@v4
-        if: steps.prepare.outputs.changed == 'true'
-
       - name: Test and build launcher
-        if: steps.prepare.outputs.changed == 'true'
         working-directory: launcher
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
-
       - name: Check launcher size
-        if: steps.prepare.outputs.changed == 'true'
         run: |
           size=$(stat -c %s launcher/app/build/outputs/apk/release/app-release.apk)
           test "$size" -lt 491520
 
-      - name: Update fork main
-        if: steps.prepare.outputs.changed == 'true'
-        run: git push origin HEAD:main
+  publish:
+    needs: [prepare, test]
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Promote the tested commit
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          git fetch origin sync/automatic-candidate
+          test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
+          git push origin "$EXPECTED_SHA":refs/heads/main
