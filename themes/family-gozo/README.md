@@ -37,6 +37,24 @@ For iPhone casting, install the separate [AirPlay Server](https://github.com/jqs
 - **19, Xlendi Bay and cliffs** — VillageHero from Ulm, Germany, [source photo](https://commons.wikimedia.org/wiki/File:View_to_Xlendi,_Gozo_(25662992352).jpg), [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/).
 - **20, Kercem cliffs at sunset** — Slashmalta, [source photo](https://commons.wikimedia.org/wiki/File:Kercem_Cliffs.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
+## Three box setups
+
+The Gozo theme is used on the box in Luqa; the theme name describes its appearance, not the box's location.
+
+| Setup | Configuration recorded in this repository |
+|---|---|
+| Luqa box | `themes/family-gozo/config.json` and the accompanying wallpapers |
+| Friend's T9 box | No separately identified configuration has been located in this repository |
+| Personal Birżebbuġa box | No separately identified configuration has been located in this repository |
+
+All three boxes can use the launcher from `main`, with their own theme and device settings. A branch represents development work, not a particular box. Apply a theme only to the intended device; do not copy the Luqa configuration onto the other boxes unless that appearance is wanted.
+
+The fork's scheduled workflow brings updates from `Gathin23/cleanyourtv:main`, preserves `themes/family-gozo/`, and promotes the candidate to `main` after its checks pass. The `sync/automatic-candidate` branch is temporary staging and can reappear during a future sync. Repository updates do not install themselves on any box.
+
+The current workflow only explicitly preserves this custom theme directory. Before storing a new custom theme for the T9 or personal box, extend the sync preservation rules so a later upstream update cannot reject or discard it. Do not create guessed device configurations.
+
+The football add-on ([draft #1](https://github.com/Wiggli/cleanyourtvhomeL/pull/1)) and Stremio rows ([draft #4](https://github.com/Wiggli/cleanyourtvhomeL/pull/4)) remain separate development work awaiting device verification.
+
 ## Device status
 
 The twenty-image collection was applied to the Amino GO Amigo7xGM running Android 12 at 1920 × 1080, and Home shows the first captioned Ta’ Pinu image. Android has the Clock screensaver component selected, though automatic standby activation still needs on-device confirmation.
