@@ -2,7 +2,7 @@ name: Sync original CleanYourTV
 
 on:
   schedule:
-    - cron: "23 6 * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 concurrency:
@@ -67,22 +67,26 @@ jobs:
           lines.insert(default + 1, row)
           index.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-          front = Path("README.md")
-          lines = front.read_text(encoding="utf-8").splitlines()
           count = sum((folder / "config.json").is_file() for folder in Path("themes").iterdir()
                       if folder.is_dir())
-          for i, line in enumerate(lines):
-              if line.startswith("| **Themes** |"):
-                  updated, matches = re.subn(
-                      r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+ship\b",
-                      f"{count} ship", line, count=1, flags=re.IGNORECASE)
-                  if matches != 1:
-                      raise RuntimeError("The front-page theme count could not be updated")
-                  lines[i] = updated
-                  break
-          else:
-              raise RuntimeError("The front-page Themes row is missing")
-          front.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          patterns = {
+              "README.md": (r"\b[\w-]+ ship in (?=\[`themes/`\])", f"{count} ship in "),
+              "README.de.md": (r"\b\w+ liegen in (?=\[`themes/`\])", f"{count} liegen in "),
+              "README.nl.md": (r"\b\w+ thema's(?=, inclusief)", f"{count} thema's"),
+              "README.pt-BR.md": (r"\b\d+ temas estão incluídos em (?=\[`themes/`\])",
+                                         f"{count} temas estão incluídos em "),
+              "README.tr.md": (r"\b\d+ tema (?=\[`themes/`\])", f"{count} tema "),
+              "README.uk.md": (r"постачається [^,]+(?=, включно)", f"постачається {count}"),
+          }
+          for name, (pattern, replacement) in patterns.items():
+              front = Path(name)
+              if not front.exists():
+                  raise RuntimeError(f"The front page {name} is missing")
+              content = front.read_text(encoding="utf-8")
+              updated, matches = re.subn(pattern, replacement, content, count=1, flags=re.IGNORECASE)
+              if matches != 1:
+                  raise RuntimeError(f"The theme count in {name} could not be updated")
+              front.write_text(updated, encoding="utf-8")
 
           agents = Path("AGENTS.md")
           text = agents.read_text(encoding="utf-8")
