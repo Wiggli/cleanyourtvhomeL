@@ -41,7 +41,7 @@ jobs:
           common=$(git merge-base origin/main upstream/main)
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              themes/family-gozo/*|themes/README.md|README.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
