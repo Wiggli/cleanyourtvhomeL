@@ -21,6 +21,7 @@
   "wallpaper": true,
   "fill_dock": false,
   "dock_glass": true,
+  "gozo_inline_weather": true,
   "module_cards": true,
   "sky_intensity": 60,
   "wallpaper_rotation_minutes": 1,
