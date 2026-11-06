@@ -432,6 +432,15 @@ final class Config {
         return ctx.getExternalFilesDir(null);
     }
 
+    /** Theme-only Gozo forecast; absent or invalid overlays keep all other TVs unchanged. */
+    static boolean gozoInlineWeather(Context ctx) {
+        File dir = dir(ctx);
+        File file = dir != null ? new File(dir, FILE_NAME) : null;
+        JSONObject json = readOverlay(ctx, file,
+                Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState()));
+        return json != null && bool(json, "gozo_inline_weather", false);
+    }
+
     static Config load(Context ctx) {
         Resources res = ctx.getResources();
         List<String> dock = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.dock_apps)));
