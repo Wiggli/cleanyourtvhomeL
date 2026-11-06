@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Rebuild from upstream while keeping the Gozo theme
+      - name: Rebuild from upstream while keeping the box profiles and Gozo theme
         id: prepare
         shell: bash
         run: |
@@ -33,6 +33,7 @@ jobs:
           git fetch --no-tags origin main
 
           if git merge-base --is-ancestor upstream/main origin/main; then
+            git push origin --delete sync/automatic-candidate 2>/dev/null || true
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "The fork already contains the current upstream main." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -41,7 +42,7 @@ jobs:
           common=$(git merge-base origin/main upstream/main)
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
@@ -52,7 +53,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach upstream/main
-          git checkout origin/main -- themes/family-gozo .github/workflows/sync-original.yml
+          git checkout origin/main -- boxes themes/family-gozo .github/workflows/sync-original.yml
           git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
 
           python3 - <<'PY'
@@ -97,13 +98,13 @@ jobs:
           git add -A
           git diff --cached --check
           tree=$(git write-tree)
-          merge_commit=$(printf 'Sync upstream main and keep the Gozo theme\n' |
+          merge_commit=$(printf 'Sync upstream main and keep the box profiles and Gozo theme\n' |
             git commit-tree "$tree" -p origin/main -p upstream/main)
           git reset --hard "$merge_commit"
           git push --force origin HEAD:refs/heads/sync/automatic-candidate
           echo "sha=$merge_commit" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "Prepared $merge_commit from upstream with only the Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
+          echo "Prepared $merge_commit from upstream with the three box profiles, Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
 
   test:
     needs: prepare
@@ -162,3 +163,4 @@ jobs:
           git fetch origin sync/automatic-candidate
           test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
           git push origin "$EXPECTED_SHA":refs/heads/main
+          git push origin --delete sync/automatic-candidate
