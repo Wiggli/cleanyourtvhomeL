@@ -4,6 +4,8 @@ This theme uses the CleanYourTV default launcher style, with a Gozo photo collec
 
 The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
 
+The Luqa setup also has an optional [`Gozo Football`](../../addons/gozo-football/) module card. Its initial interests are Manchester United, AC Milan, England and Italy, while the television settings screen can change which teams and competitions are shown. Build and install this add-on separately after its real-TV review.
+
 Apply the theme to an installed launcher with:
 
 ```sh
