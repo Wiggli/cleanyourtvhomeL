@@ -13,8 +13,6 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -38,28 +36,6 @@ final class GozoWeather {
     private volatile boolean inFlight;
     private boolean active;
     private long lastSuccess;
-
-    static boolean enabled(Activity activity) {
-        try {
-            File dir = Config.dir(activity);
-            if (dir == null) return false;
-            File file = new File(dir, Config.FILE_NAME);
-            if (!file.isFile() || file.length() > 65536) return false;
-            byte[] bytes = new byte[(int) file.length()];
-            try (FileInputStream in = new FileInputStream(file)) {
-                int offset = 0;
-                while (offset < bytes.length) {
-                    int n = in.read(bytes, offset, bytes.length - offset);
-                    if (n < 0) return false;
-                    offset += n;
-                }
-            }
-            return new JSONObject(new String(bytes, StandardCharsets.UTF_8))
-                .optBoolean("gozo_inline_weather", false);
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
 
     GozoWeather(Activity activity, FrameLayout root) {
         this.activity = activity;
