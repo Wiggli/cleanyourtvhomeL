@@ -2,7 +2,11 @@
 
 This theme uses the CleanYourTV default launcher style, with a Gozo photo collection, the time-of-day sky backdrop and the Weather add-on shortcut. Stremio and GO TV remain at the front of the dock. Optional Google media apps are hidden from the launcher while their packages remain installed. Twenty licensed landscape photographs are supplied at 1920 × 1080; Home advances through this collection sequentially every minute. The sky backdrop uses intensity 60.
 
-The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The add-on is a separate full-screen app and does not display a live forecast in the launcher's header.
+The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). The theme includes its app in the dock and leaves module cards enabled. Build and install the add-on separately, then open Weather and choose **Għarb** or **Victoria, Gozo** as the city. The standalone Weather application remains available for its detailed forecast and settings.
+
+The theme also enables **inline weather** with `gozo_inline_weather: true`. On a launcher built with the optional `GozoWeather` class, Home shows a compact, non-focusable translucent forecast in the upper right with current temperature, conditions and five daily highs/lows for Victoria, Gozo. The data comes directly from Open-Meteo over HTTPS, fetched when Home is visible and cached for thirty minutes; unavailable network access keeps the last successful reading while Home is alive. No location permission, API key, account or background service is needed for this feature. Other themes leave the feature off by default. The source coordinates are fixed to Victoria (36.0443, 14.2397) and the forecast uses Europe/Malta time. This new launcher build, not just a theme push, is required for inline weather; without it the unknown theme switch is ignored safely.
+
+The overlay is a static informational view and does not intercept remote focus. It must be visually checked on the Luqa box, especially at its native resolution and alongside the clock, navigation bar and football card. This branch has not yet been device-tested.
 
 Apply the theme to an installed launcher with:
 
