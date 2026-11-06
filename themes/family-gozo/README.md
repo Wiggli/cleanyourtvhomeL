@@ -7,7 +7,7 @@ The Weather add-on already lives in [`addons/weather/`](../../addons/weather/). 
 Apply the theme to an installed launcher with:
 
 ```sh
-TV_HOST=<parents-tv-ip> tools/theme.sh themes/family-gozo
+TV_HOST=<luqa-box-ip> tools/theme.sh themes/family-gozo
 ```
 
 After ten minutes without remote input on Home, the original launcher shows its built-in ambient clock screensaver. The Gozo photographs continue to rotate on Home, and the system Clock screensaver can be selected separately in Android TV settings. The wallpaper collection is centred and cropped to fill 16:9. Its source files are adapted from Wikimedia Commons and resized to 1920 × 1080. Each is distributed under the stated Creative Commons licence; source links below provide the full attribution and licence terms. The photographers and Wikimedia Commons do not endorse this theme.
@@ -37,24 +37,8 @@ For iPhone casting, install the separate [AirPlay Server](https://github.com/jqs
 - **19, Xlendi Bay and cliffs** — VillageHero from Ulm, Germany, [source photo](https://commons.wikimedia.org/wiki/File:View_to_Xlendi,_Gozo_(25662992352).jpg), [CC BY-SA 2.0](https://creativecommons.org/licenses/by-sa/2.0/).
 - **20, Kercem cliffs at sunset** — Slashmalta, [source photo](https://commons.wikimedia.org/wiki/File:Kercem_Cliffs.jpg), [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
-## Three box setups
+## Deployment
 
-The Gozo theme is used on the box in Luqa; the theme name describes its appearance, not the box's location.
+The theme is currently assigned to the [`Luqa box`](../../boxes/luqa.md). The three-box inventory and ownership notes live under [`boxes/`](../../boxes/) so this theme remains reusable and its documentation does not mix separate devices together.
 
-| Setup | Configuration recorded in this repository |
-|---|---|
-| Luqa box | `themes/family-gozo/config.json` and the accompanying wallpapers |
-| Friend's T9 box | No separately identified configuration has been located in this repository |
-| Personal Birżebbuġa box | No separately identified configuration has been located in this repository |
-
-All three boxes can use the launcher from `main`, with their own theme and device settings. A branch represents development work, not a particular box. Apply a theme only to the intended device; do not copy the Luqa configuration onto the other boxes unless that appearance is wanted.
-
-The fork's scheduled workflow brings updates from `Gathin23/cleanyourtv:main`, preserves `themes/family-gozo/`, and promotes the candidate to `main` after its checks pass. The `sync/automatic-candidate` branch is temporary staging and can reappear during a future sync. Repository updates do not install themselves on any box.
-
-The current workflow only explicitly preserves this custom theme directory. Before storing a new custom theme for the T9 or personal box, extend the sync preservation rules so a later upstream update cannot reject or discard it. Do not create guessed device configurations.
-
-The football add-on ([draft #1](https://github.com/Wiggli/cleanyourtvhomeL/pull/1)) and Stremio rows ([draft #4](https://github.com/Wiggli/cleanyourtvhomeL/pull/4)) remain separate development work awaiting device verification.
-
-## Device status
-
-The twenty-image collection was applied to the Amino GO Amigo7xGM running Android 12 at 1920 × 1080, and Home shows the first captioned Ta’ Pinu image. Android has the Clock screensaver component selected, though automatic standby activation still needs on-device confirmation.
+The fork's scheduled workflow imports upstream changes, preserves this theme and the box profiles, tests the resulting launcher, and only then promotes it to `main`. Repository updates do not install themselves on a box.
