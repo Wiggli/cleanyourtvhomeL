@@ -81,8 +81,8 @@ jobs:
           mkdir -p dist
           cp launcher/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher.apk
           cp fork/luqa-launcher-updater/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher-updater.apk
-          apksigner verify --verbose --print-certs dist/luqa-launcher.apk
-          apksigner verify --verbose --print-certs dist/luqa-launcher-updater.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs dist/luqa-launcher.apk
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs dist/luqa-launcher-updater.apk
           sha=$(sha256sum dist/luqa-launcher.apk | cut -d' ' -f1)
           VERSION_CODE="$VERSION_CODE" VERSION_NAME="$VERSION_NAME" SHA="$sha" python3 - <<'PY'
           from pathlib import Path
