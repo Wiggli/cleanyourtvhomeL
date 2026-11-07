@@ -83,7 +83,7 @@ share their TV's list afterwards, follow [`docs/workflows/tv-list.md`](docs/work
 | `addons/` | Optional module-card apps, each its own Gradle project, never built into the launcher. |
 | `tools/` | The ADB client (`tv.py`) and the scripts, listed in the README's Tools table. Shell scripts have PowerShell twins. Each script's usage is in its first lines, and the larger ones have a guide beside them (`tools/*.md`): read it before running the script. |
 | `tests/` | Python `unittest` suite: list format, README tables, press counts, themes, add-ons, the Home guard and the tools against fake TVs. |
-| `.github/workflows/` | `ci.yml` (tests, launcher build, APK size gate), `addons.yml`, `sync-original.yml`. |
+| `.github/workflows/` | `ci.yml` (tests, launcher build, APK size gate), `addons.yml`, `sync-original.yml`, and the fork-only signed Luqa release workflow. |
 | `.github/maintainer/MAINTAINER.md` | The review policy the maintainer and the PR bot apply. |
 | `.github/pull_request_template.md` | The PR checklist. Fill it in. |
 

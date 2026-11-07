@@ -18,6 +18,7 @@ jobs:
     outputs:
       changed: ${{ steps.prepare.outputs.changed }}
       sha: ${{ steps.prepare.outputs.sha }}
+      launcher_changed: ${{ steps.prepare.outputs.launcher_changed }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,9 +41,14 @@ jobs:
           fi
 
           common=$(git merge-base origin/main upstream/main)
+          if git diff --quiet origin/main upstream/main -- launcher; then
+            echo "launcher_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "launcher_changed=true" >> "$GITHUB_OUTPUT"
+          fi
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              boxes/*|themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
@@ -53,7 +59,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach upstream/main
-          git checkout origin/main -- boxes themes/family-gozo .github/workflows/sync-original.yml
+          git checkout origin/main -- boxes fork/luqa-launcher-updater themes/family-gozo \
+            .github/workflows/sync-original.yml .github/workflows/publish-luqa-launcher.yml
           git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
 
           python3 - <<'PY'
@@ -164,3 +171,15 @@ jobs:
           test "$(git rev-parse FETCH_HEAD)" = "$EXPECTED_SHA"
           git push origin "$EXPECTED_SHA":refs/heads/main
           git push origin --delete sync/automatic-candidate
+
+  publish-luqa-launcher:
+    needs: [prepare, publish]
+    if: needs.prepare.outputs.changed == 'true' && needs.prepare.outputs.launcher_changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Start the signed Luqa release build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api "repos/$GITHUB_REPOSITORY/dispatches" -f event_type=publish-luqa-launcher
