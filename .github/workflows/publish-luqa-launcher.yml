@@ -64,13 +64,13 @@ jobs:
         working-directory: launcher
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon testReleaseUnitTest lintRelease assembleRelease
+          ./gradlew --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease
           size=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
           test "$size" -lt 589824
 
       - name: Test and build the television updater
         run: |
-          launcher/gradlew -p fork/luqa-launcher-updater --no-daemon testReleaseUnitTest lintRelease assembleRelease
+          launcher/gradlew -p fork/luqa-launcher-updater --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease
 
       - name: Verify packages and prepare release manifest
         env:
@@ -81,8 +81,15 @@ jobs:
           mkdir -p dist
           cp launcher/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher.apk
           cp fork/luqa-launcher-updater/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher-updater.apk
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs dist/luqa-launcher.apk
-          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs dist/luqa-launcher-updater.apk
+          expected_cert=22651e080d08aaf602c40910462d2347f4969c299d8467797560a886c1f32548
+          for apk in dist/luqa-launcher.apk dist/luqa-launcher-updater.apk; do
+            cert=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
+              sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+            test "$cert" = "$expected_cert" || {
+              echo "$apk is not signed for the installed Luqa launcher" >&2
+              exit 1
+            }
+          done
           sha=$(sha256sum dist/luqa-launcher.apk | cut -d' ' -f1)
           VERSION_CODE="$VERSION_CODE" VERSION_NAME="$VERSION_NAME" SHA="$sha" python3 - <<'PY'
           from pathlib import Path
