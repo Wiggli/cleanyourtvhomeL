@@ -33,10 +33,17 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$LUQA_DEBUG_KEYSTORE_BASE64"
-          mkdir -p "$HOME/.android"
-          printf '%s' "$LUQA_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
-          chmod 600 "$HOME/.android/debug.keystore"
-          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey >/dev/null
+          keystore="$RUNNER_TEMP/luqa-signing.keystore"
+          printf '%s' "$LUQA_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          expected_cert=22651e080d08aaf602c40910462d2347f4969c299d8467797560a886c1f32548
+          restored_cert=$(keytool -list -v -keystore "$keystore" -storepass android -alias androiddebugkey |
+            sed -n 's/.*SHA256: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          test "$restored_cert" = "$expected_cert" || {
+            echo "The restored key is not the installed Luqa launcher key" >&2
+            exit 1
+          }
+          echo "LUQA_KEYSTORE_PATH=$keystore" >> "$GITHUB_ENV"
 
       - name: Assign a monotonic Luqa version
         id: version
@@ -64,13 +71,21 @@ jobs:
         working-directory: launcher
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease
+          ./gradlew --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease \
+            -Pandroid.injected.signing.store.file="$LUQA_KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
           size=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
           test "$size" -lt 589824
 
       - name: Test and build the television updater
         run: |
-          launcher/gradlew -p fork/luqa-launcher-updater --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease
+          launcher/gradlew -p fork/luqa-launcher-updater --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease \
+            -Pandroid.injected.signing.store.file="$LUQA_KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
 
       - name: Verify packages and prepare release manifest
         env:
