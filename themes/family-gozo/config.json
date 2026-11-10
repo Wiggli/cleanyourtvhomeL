@@ -26,7 +26,6 @@
   "sky_intensity": 60,
   "wallpaper_rotation_minutes": 1,
   "home_idle_clock_minutes": 10,
-  "screensaver_button": true,
   "clock_wallpaper": true,
   "wallpaper_order": "sequential",
   "wallpaper_dim": 35,
