@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.time.Instant;
 
 final class FootballConfig {
     static final String PREFS = "gozo_football_preferences";
@@ -77,6 +78,14 @@ final class FootballConfig {
             if (competition.slug.equals(slug)) return competition.name;
         }
         return slug;
+    }
+
+    /** ESPN sometimes omits seconds, which older Android java.time rejects even though the instant is valid. */
+    static long parseKickoffMillis(String value) {
+        if (value != null && value.length() == 17 && value.charAt(16) == 'Z') {
+            value = value.substring(0, 16) + ":00Z";
+        }
+        return Instant.parse(value).toEpochMilli();
     }
 
     static final class Team {

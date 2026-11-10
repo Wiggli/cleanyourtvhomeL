@@ -32,4 +32,10 @@ public final class FootballConfigTest {
         assertEquals("Champions League", FootballConfig.competitionName("uefa.champions"));
         assertEquals("unknown", FootballConfig.competitionName("unknown"));
     }
+
+    @Test
+    public void espnKickoffsWorkWithOrWithoutSeconds() {
+        assertEquals(1793450400000L, FootballConfig.parseKickoffMillis("2026-10-31T12:40Z"));
+        assertEquals(1793450400000L, FootballConfig.parseKickoffMillis("2026-10-31T12:40:00Z"));
+    }
 }

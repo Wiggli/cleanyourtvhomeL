@@ -108,7 +108,7 @@ public final class SettingsActivity extends Activity {
             stroke(canvas, 80, 55, 1760, 970, 44, Color.argb(45, 255, 255, 255), 2);
 
             text(canvas, "Football interests", 140, 135, 46, Color.WHITE, true);
-            text(canvas, "Choose what appears on the Luqa match centre", 140, 177, 23,
+            text(canvas, "Choose what appears on your match centre", 140, 177, 23,
                     Color.argb(175, 255, 255, 255), false);
 
             text(canvas, "TEAMS", 140, 250, 18, Color.rgb(255, 143, 132), true);
