@@ -258,17 +258,17 @@ public final class MainActivity extends Activity {
             String id = event.optString("id", "");
             String date = event.optString("date", "");
             if (id.isEmpty() || date.isEmpty()) return null;
-            long kickoff = Instant.parse(date).toEpochMilli();
-
-            JSONObject status = event.optJSONObject("status");
-            JSONObject type = status == null ? null : status.optJSONObject("type");
-            String state = type == null ? "pre" : type.optString("state", "pre");
+            long kickoff = FootballConfig.parseKickoffMillis(date);
 
             JSONArray competitions = event.optJSONArray("competitions");
             if (competitions == null || competitions.length() == 0) return null;
             JSONObject competition = competitions.optJSONObject(0);
             JSONArray competitors = competition == null ? null : competition.optJSONArray("competitors");
             if (competitors == null) return null;
+
+            JSONObject status = competition.optJSONObject("status");
+            JSONObject type = status == null ? null : status.optJSONObject("type");
+            String state = type == null ? "pre" : type.optString("state", "pre");
 
             String opponent = null;
             String ourScore = "";
@@ -280,7 +280,9 @@ public final class MainActivity extends Activity {
                 JSONObject teamJson = competitor.optJSONObject("team");
                 if (teamJson == null) continue;
                 boolean ours = String.valueOf(team.espnId).equals(teamJson.optString("id"));
-                String score = competitor.optString("score", "");
+                JSONObject scoreJson = competitor.optJSONObject("score");
+                String score = scoreJson == null
+                        ? competitor.optString("score", "") : scoreJson.optString("displayValue", "");
                 if (ours) {
                     ourScore = score;
                     home = "home".equals(competitor.optString("homeAway"));
@@ -335,7 +337,7 @@ public final class MainActivity extends Activity {
             strokeRound(canvas, 90, 65, 1830, 1015, 46, Color.argb(70, 255, 255, 255), 2);
 
             text(canvas, "Football", 150, 145, 48, Color.WHITE, true);
-            text(canvas, "Luqa match centre", 150, 187, 24, Color.argb(185, 255, 255, 255), false);
+            text(canvas, "Match centre", 150, 187, 24, Color.argb(185, 255, 255, 255), false);
             String status = loading ? "Updating fixtures…" : updatedLabel();
             textRight(canvas, status, 1765, 150, 22, Color.argb(170, 255, 255, 255));
 

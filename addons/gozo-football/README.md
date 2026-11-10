@@ -49,4 +49,4 @@ All four teams are shown on first use. Open the dashboard and press Down to choo
 
 ## Tested on
 
-Source prepared for the Amino GO Amigo7xGM running Android TV 12 used by the Luqa `family-gozo` setup. Real-TV installation, remote navigation and visual confirmation are still required before describing the add-on as device-tested.
+Installed and checked on the Amino GO Amigo7xGM running Android TV 12 used by the Luqa `family-gozo` setup. The live ESPN refresh, cached results, team switching, settings screen and D-pad navigation were verified on the television.
