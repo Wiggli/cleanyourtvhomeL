@@ -128,9 +128,9 @@ jobs:
           if gh release view luqa-launcher-latest >/dev/null 2>&1; then
             gh release upload luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/update.json --clobber
             gh release edit luqa-launcher-latest --title "Luqa launcher $VERSION_NAME" \
-              --notes "Verified launcher update from $GITHUB_SHA. The television asks before installation."
+              --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           else
             gh release create luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/update.json \
               --target "$GITHUB_SHA" --title "Luqa launcher $VERSION_NAME" \
-              --notes "Verified launcher update from $GITHUB_SHA. The television asks before installation."
+              --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           fi

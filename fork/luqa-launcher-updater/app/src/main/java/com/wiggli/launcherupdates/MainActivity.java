@@ -2,15 +2,12 @@ package com.wiggli.launcherupdates;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -58,7 +55,7 @@ public final class MainActivity extends Activity {
         TextView title = label("Launcher updates", 38, Color.WHITE, true);
         root.addView(title, fullWidth(60));
 
-        TextView subtitle = label("Your box checks your GitHub fork every few days and always asks before installing.",
+        TextView subtitle = label("Your box checks your GitHub fork daily and installs verified launcher updates automatically.",
                 19, 0xffb8c8d8, false);
         root.addView(subtitle, fullWidth(72));
 
@@ -95,7 +92,7 @@ public final class MainActivity extends Activity {
         installParams.setMargins((int) (18 * density), 0, 0, 0);
         actions.addView(install, installParams);
 
-        TextView footer = label("Automatic checks download only a small release manifest. The launcher APK is downloaded only after you choose Install.",
+        TextView footer = label("Only a newer release is downloaded, after which its checksum, package, version and signing key are verified.",
                 14, 0xff7f98ad, false);
         footer.setGravity(Gravity.CENTER);
         root.addView(footer, fullWidth(62));
@@ -149,7 +146,7 @@ public final class MainActivity extends Activity {
             available = null;
             status.setText("Launcher is up to date");
             details.setText("Installed version " + result.installedVersionName + " is the latest approved release.\n\n"
-                    + "The box will check again automatically in the next few days.");
+                    + "The box will check again automatically within a day.");
             return;
         }
         available = result.update;
@@ -158,7 +155,7 @@ public final class MainActivity extends Activity {
         details.setText("Installed version: " + result.installedVersionName + "\n"
                 + "Available version: " + result.update.versionName + "\n"
                 + "GitHub revision: " + shortCommit + "\n\n"
-                + "Select Download and install to verify the APK and open Android's installation confirmation.");
+                + "The daily updater will verify and install this release automatically. Select Download and install to run it now.");
         install.setEnabled(true);
         install.requestFocus();
     }
@@ -172,7 +169,12 @@ public final class MainActivity extends Activity {
         executor.execute(() -> {
             try {
                 File apk = UpdateClient.downloadAndVerify(getApplicationContext(), available);
-                runOnUiThread(() -> openInstaller(apk));
+                UpdateInstaller.commit(getApplicationContext(), apk);
+                runOnUiThread(() -> {
+                    status.setText("Verified update submitted");
+                    details.setText("Android is applying the signed launcher update. If this box has not completed its one-time installer setup, Android will request approval instead.");
+                    check.setEnabled(true);
+                });
             } catch (Exception error) {
                 runOnUiThread(() -> {
                     status.setText("Update was blocked");
@@ -182,26 +184,6 @@ public final class MainActivity extends Activity {
                 });
             }
         });
-    }
-
-    private void openInstaller(File apk) {
-        if (!getPackageManager().canRequestPackageInstalls()) {
-            status.setText("Allow this update source once");
-            details.setText("Android must allow Launcher Updates to open a verified APK. Enable Allow from this source, return here, then select Download and install again.");
-            startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:" + getPackageName())));
-            check.setEnabled(true);
-            install.setEnabled(true);
-            return;
-        }
-        Uri uri = Uri.parse("content://com.wiggli.launcherupdates.apk/launcher.apk");
-        Intent installIntent = new Intent(Intent.ACTION_INSTALL_PACKAGE, uri)
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                .putExtra(Intent.EXTRA_RETURN_RESULT, false);
-        startActivity(installIntent);
-        status.setText("Waiting for Android confirmation");
-        details.setText("Review Android's installation screen and choose Install. Cancelling leaves the current launcher unchanged.");
-        check.setEnabled(true);
     }
 
     private void requestNotificationsIfNeeded() {
