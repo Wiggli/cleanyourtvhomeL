@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Rebuild from upstream while keeping the box profiles and Gozo theme
+      - name: Rebuild from upstream while keeping the box profiles, Gozo theme and football add-on
         id: prepare
         shell: bash
         run: |
@@ -48,7 +48,7 @@ jobs:
           fi
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/workflows/sync-original.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the theme: $changed_path"
                 exit 1
@@ -59,7 +59,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach upstream/main
-          git checkout origin/main -- boxes fork/luqa-launcher-updater themes/family-gozo \
+          git checkout origin/main -- boxes fork/luqa-launcher-updater themes/family-gozo addons/gozo-football \
             .github/workflows/sync-original.yml .github/workflows/publish-luqa-launcher.yml
           git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
 
@@ -74,6 +74,15 @@ jobs:
           default = next(i for i, line in enumerate(lines) if line.startswith("| `default/` |"))
           lines.insert(default + 1, row)
           index.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          addon_row = '| [Gozo Football](gozo-football/) | A configurable match centre for Manchester United, AC Milan, England and Italy on the Luqa box | Wiggli | Amino GO Amigo7xGM, Android TV 12 | `INTERNET` | <img src="gozo-football/screenshot.jpg" width="240" alt="Gozo Football interests on a TV"> |'
+          addons = Path("addons/README.md")
+          addon_lines = [line for line in addons.read_text(encoding="utf-8").splitlines()
+                         if not line.startswith("| [Gozo Football](gozo-football/) |")]
+          weather = next(i for i, line in enumerate(addon_lines)
+                         if line.startswith("| [Weather](weather/) |"))
+          addon_lines.insert(weather + 1, addon_row)
+          addons.write_text("\n".join(addon_lines) + "\n", encoding="utf-8")
 
           count = sum((folder / "config.json").is_file() for folder in Path("themes").iterdir()
                       if folder.is_dir())
@@ -111,7 +120,7 @@ jobs:
           git push --force origin HEAD:refs/heads/sync/automatic-candidate
           echo "sha=$merge_commit" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "Prepared $merge_commit from upstream with the three box profiles, Gozo theme and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
+          echo "Prepared $merge_commit from upstream with the three box profiles, Gozo theme, football add-on and fork sync settings." >> "$GITHUB_STEP_SUMMARY"
 
   test:
     needs: prepare
