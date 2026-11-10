@@ -1,0 +1,33 @@
+name: Keep scheduled upstream sync active
+
+on:
+  schedule:
+    - cron: "41 3 1 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-original-main
+  cancel-in-progress: false
+
+jobs:
+  keep-alive:
+    if: github.repository == 'Wiggli/cleanyourtvhomeL'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Record monthly repository activity
+        run: |
+          set -euo pipefail
+          month=$(date -u +%Y-%m)
+          current=$(cat .github/sync-heartbeat 2>/dev/null || true)
+          if [ "$current" = "$month" ]; then
+            exit 0
+          fi
+          printf '%s\n' "$month" > .github/sync-heartbeat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/sync-heartbeat
+          git commit -m "ci: keep scheduled upstream sync active [skip ci]"
+          git push origin HEAD:main

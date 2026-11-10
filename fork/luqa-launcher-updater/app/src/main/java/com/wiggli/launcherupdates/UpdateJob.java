@@ -26,7 +26,7 @@ public final class UpdateJob extends JobService {
         JobInfo job = new JobInfo.Builder(JOB_ID, new ComponentName(context, UpdateJob.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 .setPersisted(true)
-                .setPeriodic(TimeUnit.DAYS.toMillis(3), TimeUnit.HOURS.toMillis(12))
+                .setPeriodic(TimeUnit.DAYS.toMillis(1), TimeUnit.HOURS.toMillis(6))
                 .build();
         context.getSystemService(JobScheduler.class).schedule(job);
     }
@@ -35,7 +35,7 @@ public final class UpdateJob extends JobService {
     public boolean onStartJob(JobParameters params) {
         executor.execute(() -> {
             UpdateClient.CheckResult result = UpdateClient.check(getApplicationContext());
-            if (result.updateAvailable) notifyAvailable(result);
+            if (result.updateAvailable) installAvailable(result);
             jobFinished(params, false);
         });
         return true;
@@ -48,7 +48,17 @@ public final class UpdateJob extends JobService {
         super.onDestroy();
     }
 
-    private void notifyAvailable(UpdateClient.CheckResult result) {
+    private void installAvailable(UpdateClient.CheckResult result) {
+        try {
+            java.io.File apk = UpdateClient.downloadAndVerify(getApplicationContext(), result.update);
+            UpdateInstaller.commit(getApplicationContext(), apk);
+        } catch (Exception error) {
+            notifyStatus("Launcher update was blocked",
+                    error.getMessage() == null ? "The signed update could not be verified" : error.getMessage());
+        }
+    }
+
+    private void notifyStatus(String title, String message) {
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel(CHANNEL, "Launcher updates",
                 NotificationManager.IMPORTANCE_DEFAULT));
@@ -56,8 +66,8 @@ public final class UpdateJob extends JobService {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         android.app.Notification notification = new android.app.Notification.Builder(this, CHANNEL)
                 .setSmallIcon(R.drawable.icon)
-                .setContentTitle("Launcher update available")
-                .setContentText("Version " + result.update.versionName + " is ready for your approval")
+                .setContentTitle(title)
+                .setContentText(message)
                 .setContentIntent(open)
                 .setAutoCancel(true)
                 .build();
