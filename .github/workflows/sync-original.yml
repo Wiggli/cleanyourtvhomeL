@@ -118,31 +118,11 @@ jobs:
 
           count = sum((folder / "config.json").is_file() for folder in Path("themes").iterdir()
                       if folder.is_dir())
-          words = {
-              "README.md": "thirty",
-              "README.de.md": "dreißig",
-              "README.nl.md": "dertig",
-              "README.uk.md": "тридцять",
-          }
-          if count != 30:
-              raise RuntimeError(
-                  "The preserved Gozo theme now requires a new translated number word; "
-                  f"the rebuilt tree contains {count} themes")
           patterns = {
-              "README.md": (r"\b[\w-]+ ship in (?=\[`themes/`\])",
-                            f"{words['README.md']} ship in "),
-              "README.de.md": (r"\b[\w-]+ liegen in (?=\[`themes/`\])",
-                               f"{words['README.de.md']} liegen in "),
-              "README.nl.md": (r"\b[\w-]+ thema's(?=, inclusief)",
-                               f"{words['README.nl.md']} thema's"),
-              "README.uk.md": (r"постачається [^,]+(?=, включно)",
-                               f"постачається {words['README.uk.md']}"),
-              "README.fr.md": (r"\b\d+ thèmes (?=sont fournis dans)", f"{count} thèmes "),
-              "README.he.md": (r"\b\d+ (?=ערכות ב)", f"{count} "),
-              "README.pt-BR.md": (r"\b\d+ temas estão incluídos em (?=\[`themes/`\])",
-                                         f"{count} temas estão incluídos em "),
-              "README.tr.md": (r"\b\d+ tema (?=\[`themes/`\])", f"{count} tema "),
-              "README.uz.md": (r"\b\d+ ta mavzu (?=\[`themes/`\])", f"{count} ta mavzu "),
+              "README.md": (r"\b[\w-]+ ship in (?=\[`themes/`\])", f"{count} ship in "),
+              "README.de.md": (r"\b[\w-]+ liegen in (?=\[`themes/`\])", f"{count} liegen in "),
+              "README.nl.md": (r"\b[\w-]+ thema's(?=, inclusief)", f"{count} thema's"),
+              "README.uk.md": (r"постачається [^,]+(?=, включно)", f"постачається {count}"),
           }
           for name, (pattern, replacement) in patterns.items():
               front = Path(name)
@@ -153,6 +133,32 @@ jobs:
               if matches != 1:
                   raise RuntimeError(f"The theme count in {name} could not be updated")
               front.write_text(updated, encoding="utf-8")
+
+          themes_link = re.compile(r"\[`?themes/?`?\]\(themes/?\)")
+          digit_pages = []
+          for front in sorted(Path(".").glob("README*.md")):
+              lines = front.read_text(encoding="utf-8").splitlines()
+              changed = False
+              for index, line in enumerate(lines):
+                  if themes_link.search(line) and re.search(r"\b\d+\b", line):
+                      lines[index], matches = re.subn(r"\b\d+\b", str(count), line, count=1)
+                      if matches != 1:
+                          raise RuntimeError(f"The numeric theme count in {front} could not be updated")
+                      digit_pages.append(front.name)
+                      changed = True
+              if changed:
+                  front.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          for recipe_name in ("docs/workflows/theme.md", "themes/README.md",
+                              "themes/CREATE_A_THEME.md"):
+              recipe = Path(recipe_name)
+              text = recipe.read_text(encoding="utf-8")
+              updated, matches = re.subn(r"the last [\w-]+ in digits",
+                                         f"the last {len(set(digit_pages))} in digits", text,
+                                         count=1)
+              if matches != 1:
+                  raise RuntimeError(f"The digit-page group in {recipe_name} could not be updated")
+              recipe.write_text(updated, encoding="utf-8")
 
           agents = Path("AGENTS.md")
           text = agents.read_text(encoding="utf-8")
