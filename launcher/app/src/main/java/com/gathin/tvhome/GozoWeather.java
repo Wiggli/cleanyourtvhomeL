@@ -1,12 +1,10 @@
 package com.gathin.tvhome;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -37,7 +35,6 @@ final class GozoWeather {
         float d = activity.getResources().getDisplayMetrics().density;
         panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         panel.setPadding((int)(16*d), (int)(12*d), (int)(16*d), (int)(12*d));
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(0x990C1721);
@@ -49,13 +46,8 @@ final class GozoWeather {
         lp.topMargin = (int)(146*d);
         lp.rightMargin = (int)(42*d);
         root.addView(panel, lp);
-        TextView headline = line("GOZO  ·  WEATHER", 20, Color.WHITE);
-        LinearLayout.LayoutParams headLp = new LinearLayout.LayoutParams(-1, -2);
-        panel.addView(headline, headLp);
-        forecast = line("Forecast unavailable", 13, 0xDDFFFFFF);
-        LinearLayout.LayoutParams forecastLp = new LinearLayout.LayoutParams(-1, -2);
-        forecastLp.topMargin = (int)(9*d);
-        panel.addView(forecast, forecastLp);
+        forecast = line("GOZO  ·  WEATHER\nForecast unavailable", 13, 0xDDFFFFFF);
+        panel.addView(forecast);
     }
 
     private TextView line(String text, int size, int colour) {
@@ -95,7 +87,7 @@ final class GozoWeather {
                 JSONArray dates = daily.getJSONArray("time");
                 JSONArray hi = daily.getJSONArray("temperature_2m_max");
                 JSONArray lo = daily.getJSONArray("temperature_2m_min");
-                StringBuilder days = new StringBuilder();
+                StringBuilder days = new StringBuilder("GOZO  ·  WEATHER\n");
                 for (int i = 0; i < Math.min(5, dates.length()); i++) {
                     if (i > 0) days.append("\n");
                     String day = i == 0 ? "Today" : dates.getString(i).substring(5);
