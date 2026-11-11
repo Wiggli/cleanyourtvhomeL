@@ -220,33 +220,36 @@ public final class MainActivity extends Activity {
     private List<Match> fetchTeam(FootballConfig.Team team, SharedPreferences preferences) {
         Map<String, Match> unique = new LinkedHashMap<>();
         for (String competition : FootballConfig.enabledCompetitions(preferences, team)) {
-            HttpURLConnection connection = null;
-            try {
-                URL url = new URL("https://site.api.espn.com/apis/site/v2/sports/soccer/"
-                        + competition + "/teams/" + team.espnId + "/schedule?limit=100");
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(6000);
-                connection.setRequestProperty("Accept", "application/json");
-                connection.setRequestProperty("User-Agent", "GozoFootball/1.0 AndroidTV");
-                int code = connection.getResponseCode();
-                if (code < 200 || code >= 300) continue;
+            for (boolean fixtures : new boolean[]{false, true}) {
+                HttpURLConnection connection = null;
+                try {
+                    URL url = new URL("https://site.api.espn.com/apis/site/v2/sports/soccer/"
+                            + competition + "/teams/" + team.espnId + "/schedule"
+                            + (fixtures ? "?fixture=true" : ""));
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(5000);
+                    connection.setReadTimeout(6000);
+                    connection.setRequestProperty("Accept", "application/json");
+                    connection.setRequestProperty("User-Agent", "GozoFootball/2.1 AndroidTV");
+                    int code = connection.getResponseCode();
+                    if (code < 200 || code >= 300) continue;
 
-                StringBuilder body = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) body.append(line);
+                    StringBuilder body = new StringBuilder();
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                        String line;
+                        while ((line = reader.readLine()) != null) body.append(line);
+                    }
+                    JSONObject root = new JSONObject(body.toString());
+                    JSONArray events = root.optJSONArray("events");
+                    if (events == null) continue;
+                    for (int i = 0; i < events.length(); i++) {
+                        Match match = parseMatch(events.optJSONObject(i), team, competition);
+                        if (match != null) unique.put(match.id, match);
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    if (connection != null) connection.disconnect();
                 }
-                JSONObject root = new JSONObject(body.toString());
-                JSONArray events = root.optJSONArray("events");
-                if (events == null) continue;
-                for (int i = 0; i < events.length(); i++) {
-                    Match match = parseMatch(events.optJSONObject(i), team, competition);
-                    if (match != null) unique.put(match.id, match);
-                }
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
             }
         }
 
@@ -282,6 +285,7 @@ public final class MainActivity extends Activity {
             String ourScore = "";
             String theirScore = "";
             boolean home = false;
+            boolean foundTeam = false;
             for (int i = 0; i < competitors.length(); i++) {
                 JSONObject competitor = competitors.optJSONObject(i);
                 if (competitor == null) continue;
@@ -292,6 +296,7 @@ public final class MainActivity extends Activity {
                 String score = scoreJson == null
                         ? competitor.optString("score", "") : scoreJson.optString("displayValue", "");
                 if (ours) {
+                    foundTeam = true;
                     ourScore = score;
                     home = "home".equals(competitor.optString("homeAway"));
                 } else {
@@ -299,7 +304,7 @@ public final class MainActivity extends Activity {
                     theirScore = score;
                 }
             }
-            if (opponent == null) return null;
+            if (!foundTeam || opponent == null) return null;
             return new Match(id, kickoff, opponent, FootballConfig.competitionName(competitionSlug), state,
                     statusDetail, ourScore, theirScore, home);
         } catch (Exception ignored) {
@@ -383,7 +388,7 @@ public final class MainActivity extends Activity {
                 return;
             }
 
-            drawRound(canvas, 150, 335, 1050, 635, 34, Color.argb(150, 255, 255, 255));
+            drawRound(canvas, 150, 335, 1050, 635, 34, Color.argb(218, 15, 27, 42));
             strokeRound(canvas, 150, 335, 1050, 635, 34, Color.argb(80, 255, 255, 255), 2);
             paint.setColor(team.color);
             canvas.drawCircle(220, 410, 34, paint);
@@ -407,7 +412,7 @@ public final class MainActivity extends Activity {
                         200, 525, 30, Color.argb(210, 255, 255, 255), false);
             }
 
-            drawRound(canvas, 1090, 335, 675, 485, 34, Color.argb(125, 255, 255, 255));
+            drawRound(canvas, 1090, 335, 675, 485, 34, Color.argb(210, 10, 21, 34));
             strokeRound(canvas, 1090, 335, 675, 485, 34, Color.argb(65, 255, 255, 255), 2);
             text(canvas, "Coming up", 1140, 395, 28, Color.WHITE, true);
             List<Match> upcoming = upcoming(matches, 3);
@@ -424,7 +429,7 @@ public final class MainActivity extends Activity {
                 }
             }
 
-            drawRound(canvas, 150, 675, 900, 170, 30, Color.argb(105, 255, 255, 255));
+            drawRound(canvas, 150, 675, 900, 170, 30, Color.argb(205, 20, 31, 46));
             text(canvas, "Latest result", 195, 730, 24, Color.argb(175, 255, 255, 255), false);
             if (previous != null) {
                 String result = team.name + "  " + score(previous.ourScore) + "  –  "
@@ -448,7 +453,7 @@ public final class MainActivity extends Activity {
             for (int i = 0; i < labels.length; i++) {
                 boolean active = section == i;
                 drawRound(canvas, x + i * 185, 112, 165, 54, 18,
-                        active ? Color.argb(70, 255, 255, 255) : Color.argb(22, 255, 255, 255));
+                        active ? Color.argb(220, 66, 78, 94) : Color.argb(190, 27, 36, 49));
                 strokeRound(canvas, x + i * 185, 112, 165, 54, 18,
                         active ? Color.argb(180, 255, 255, 255) : Color.argb(24, 255, 255, 255),
                         active ? 2 : 1);
@@ -458,7 +463,7 @@ public final class MainActivity extends Activity {
         }
 
         private void drawFixtures(Canvas canvas, FootballConfig.Team team, List<Match> matches) {
-            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(145, 255, 255, 255));
+            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(218, 15, 27, 42));
             strokeRound(canvas, 150, 335, 1615, 590, 34, Color.argb(65, 255, 255, 255), 2);
             text(canvas, "Upcoming fixtures", 205, 405, 32, Color.WHITE, true);
             List<Match> fixtures = upcoming(matches, 6);
@@ -471,7 +476,7 @@ public final class MainActivity extends Activity {
             for (Match match : fixtures) {
                 boolean live = "in".equals(match.state);
                 drawRound(canvas, 195, y, 1525, 66, 19,
-                        live ? Color.argb(48, 218, 41, 28) : Color.argb(27, 255, 255, 255));
+                        live ? Color.argb(70, 218, 41, 28) : Color.argb(190, 25, 38, 54));
                 text(canvas, live ? "LIVE" : shortDate(match.kickoff), 225, y + 41, 18,
                         live ? 0xFFFFA99E : Color.argb(170, 255, 255, 255), live);
                 String pairing = match.home ? team.name + "  v  " + match.opponent
@@ -486,7 +491,7 @@ public final class MainActivity extends Activity {
         }
 
         private void drawResults(Canvas canvas, FootballConfig.Team team, List<Match> matches) {
-            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(145, 255, 255, 255));
+            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(218, 15, 27, 42));
             strokeRound(canvas, 150, 335, 1615, 590, 34, Color.argb(65, 255, 255, 255), 2);
             text(canvas, "Recent results", 205, 405, 32, Color.WHITE, true);
             List<Match> results = results(matches, 6);
@@ -497,7 +502,7 @@ public final class MainActivity extends Activity {
             }
             float y = 455;
             for (Match match : results) {
-                drawRound(canvas, 195, y, 1525, 66, 19, Color.argb(27, 255, 255, 255));
+                drawRound(canvas, 195, y, 1525, 66, 19, Color.argb(190, 25, 38, 54));
                 text(canvas, shortDate(match.kickoff), 225, y + 41, 18,
                         Color.argb(170, 255, 255, 255), false);
                 String pairing = match.home ? team.name + "  " + score(match.ourScore) + " – "
@@ -512,7 +517,7 @@ public final class MainActivity extends Activity {
         }
 
         private void drawControls(Canvas canvas) {
-            drawRound(canvas, 1090, 845, 675, 80, 24, Color.argb(75, 255, 255, 255));
+            drawRound(canvas, 1090, 845, 675, 80, 24, Color.argb(205, 21, 33, 48));
             text(canvas, "←  →  team   ·   ↑  ↓  view", 1130, 895, 19,
                     Color.argb(195, 255, 255, 255), false);
             textRight(canvas, "MENU settings   ·   OK refresh", 1720, 895, 19,
@@ -522,8 +527,8 @@ public final class MainActivity extends Activity {
         private void drawTeamPill(Canvas canvas, float x, float y, float w, float h, int index) {
             FootballConfig.Team team = enabledTeams.get(index);
             boolean active = index == selected;
-            int fill = active ? Color.argb(205, Color.red(team.color), Color.green(team.color), Color.blue(team.color))
-                    : Color.argb(90, 255, 255, 255);
+            int fill = active ? Color.argb(225, Color.red(team.color), Color.green(team.color), Color.blue(team.color))
+                    : Color.argb(205, 39, 49, 63);
             drawRound(canvas, x, y, w, h, 26, fill);
             strokeRound(canvas, x, y, w, h, 26,
                     active ? Color.argb(210, 255, 255, 255) : Color.argb(45, 255, 255, 255), active ? 3 : 2);

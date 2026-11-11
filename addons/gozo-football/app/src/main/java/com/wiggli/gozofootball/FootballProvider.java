@@ -95,7 +95,7 @@ public final class FootballProvider extends ContentProvider {
         HttpURLConnection connection = null;
         try {
             URL url = new URL("https://site.api.espn.com/apis/site/v2/sports/soccer/"
-                    + competitionSlug + "/teams/" + team.espnId + "/schedule?limit=100");
+                    + competitionSlug + "/teams/" + team.espnId + "/schedule?fixture=true");
             connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(4500);
             connection.setReadTimeout(5500);
@@ -141,6 +141,7 @@ public final class FootballProvider extends ContentProvider {
             String ourScore = "";
             String theirScore = "";
             boolean home = false;
+            boolean foundTeam = false;
             for (int i = 0; i < competitors.length(); i++) {
                 JSONObject competitor = competitors.getJSONObject(i);
                 JSONObject team = competitor.getJSONObject("team");
@@ -149,6 +150,7 @@ public final class FootballProvider extends ContentProvider {
                 String value = score == null ? competitor.optString("score", "")
                         : score.optString("displayValue", "");
                 if (ours) {
+                    foundTeam = true;
                     ourScore = value;
                     home = "home".equals(competitor.optString("homeAway"));
                 } else {
@@ -156,7 +158,7 @@ public final class FootballProvider extends ContentProvider {
                     theirScore = value;
                 }
             }
-            return opponent == null ? null : new Candidate(selected.name, selected.shortName, opponent,
+            return !foundTeam || opponent == null ? null : new Candidate(selected.name, selected.shortName, opponent,
                     FootballConfig.competitionName(competitionSlug), state, statusText, kickoff, home,
                     ourScore, theirScore);
         } catch (Exception ignored) {

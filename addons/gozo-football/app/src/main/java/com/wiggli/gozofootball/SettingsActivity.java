@@ -126,7 +126,7 @@ public final class SettingsActivity extends Activity {
                         competition.region, competitions[i], teams.length + i);
             }
 
-            round(canvas, 140, 870, 1635, 92, 24, Color.argb(55, 255, 255, 255));
+            round(canvas, 140, 870, 1635, 92, 24, Color.argb(210, 21, 33, 48));
             text(canvas, "↑  ↓  move", 185, 928, 22, Color.argb(205, 255, 255, 255), false);
             text(canvas, "OK select", 450, 928, 22, Color.argb(205, 255, 255, 255), false);
             text(canvas, "Back saves and returns", 690, 928, 22, Color.argb(205, 255, 255, 255), false);
@@ -138,7 +138,7 @@ public final class SettingsActivity extends Activity {
         private void drawRow(Canvas canvas, float x, float y, float width, String title, String detail,
                              boolean checked, int index) {
             boolean focused = selected == index;
-            int fill = focused ? Color.argb(70, 255, 255, 255) : Color.argb(24, 255, 255, 255);
+            int fill = focused ? Color.argb(225, 56, 69, 86) : Color.argb(195, 25, 37, 52);
             round(canvas, x, y, width, 82, 20, fill);
             stroke(canvas, x, y, width, 82, 20,
                     focused ? Color.argb(225, 255, 255, 255) : Color.argb(30, 255, 255, 255), focused ? 3 : 1);
