@@ -57,10 +57,12 @@ jobs:
         run: |
           set -euo pipefail
           upstream_name=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" launcher/app/build.gradle | head -1)
+          football_upstream_name=$(sed -n "s/.*versionName '\([^']*\)'.*/\1/p" addons/gozo-football/app/build.gradle | head -1)
           test -n "$upstream_name"
+          test -n "$football_upstream_name"
           version_code=$(date -u +%y%j%H%M)
           version_name="${upstream_name}.luqa.${GITHUB_RUN_NUMBER}"
-          football_name="2.0.luqa.${GITHUB_RUN_NUMBER}"
+          football_name="${football_upstream_name}.luqa.${GITHUB_RUN_NUMBER}"
           VERSION_CODE="$version_code" VERSION_NAME="$version_name" FOOTBALL_NAME="$football_name" python3 - <<'PY'
           from pathlib import Path
           import os, re
