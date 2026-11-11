@@ -7,6 +7,8 @@ on:
   push:
     branches: [main]
     paths:
+      - "launcher/**"
+      - "addons/gozo-football/**"
       - "fork/luqa-launcher-updater/**"
       - ".github/workflows/publish-luqa-launcher.yml"
 
@@ -58,19 +60,23 @@ jobs:
           test -n "$upstream_name"
           version_code=$(date -u +%y%j%H%M)
           version_name="${upstream_name}.luqa.${GITHUB_RUN_NUMBER}"
-          VERSION_CODE="$version_code" VERSION_NAME="$version_name" python3 - <<'PY'
+          football_name="2.0.luqa.${GITHUB_RUN_NUMBER}"
+          VERSION_CODE="$version_code" VERSION_NAME="$version_name" FOOTBALL_NAME="$football_name" python3 - <<'PY'
           from pathlib import Path
           import os, re
-          path = Path("launcher/app/build.gradle")
-          text = path.read_text(encoding="utf-8")
-          text, codes = re.subn(r"versionCode\s+\d+", "versionCode " + os.environ["VERSION_CODE"], text, count=1)
-          text, names = re.subn(r"versionName\s+'[^']+'", "versionName '" + os.environ["VERSION_NAME"] + "'", text, count=1)
-          if codes != 1 or names != 1:
-              raise SystemExit("launcher version fields were not found exactly once")
-          path.write_text(text, encoding="utf-8")
+          for name, version in (("launcher/app/build.gradle", os.environ["VERSION_NAME"]),
+                                ("addons/gozo-football/app/build.gradle", os.environ["FOOTBALL_NAME"])):
+              path = Path(name)
+              text = path.read_text(encoding="utf-8")
+              text, codes = re.subn(r"versionCode\s+\d+", "versionCode " + os.environ["VERSION_CODE"], text, count=1)
+              text, names = re.subn(r"versionName\s+'[^']+'", "versionName '" + version + "'", text, count=1)
+              if codes != 1 or names != 1:
+                  raise SystemExit(f"version fields were not found exactly once in {name}")
+              path.write_text(text, encoding="utf-8")
           PY
           echo "code=$version_code" >> "$GITHUB_OUTPUT"
           echo "name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "football_name=$football_name" >> "$GITHUB_OUTPUT"
 
       - name: Test and build the launcher
         working-directory: launcher
@@ -92,6 +98,16 @@ jobs:
             -Pandroid.injected.signing.key.alias=androiddebugkey \
             -Pandroid.injected.signing.key.password=android
 
+      - name: Test and build Gozo Football
+        working-directory: addons/gozo-football
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --no-build-cache clean test lintRelease assembleRelease \
+            -Pandroid.injected.signing.store.file="$LUQA_KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
+
       - name: Verify packages and prepare release manifest
         env:
           VERSION_CODE: ${{ steps.version.outputs.code }}
@@ -101,8 +117,9 @@ jobs:
           mkdir -p dist
           cp launcher/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher.apk
           cp fork/luqa-launcher-updater/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher-updater.apk
+          cp addons/gozo-football/app/build/outputs/apk/release/app-release.apk dist/gozo-football.apk
           expected_cert=22651e080d08aaf602c40910462d2347f4969c299d8467797560a886c1f32548
-          for apk in dist/luqa-launcher.apk dist/luqa-launcher-updater.apk; do
+          for apk in dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk; do
             cert=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
               sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
             test "$cert" = "$expected_cert" || {
@@ -131,11 +148,11 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view luqa-launcher-latest >/dev/null 2>&1; then
-            gh release upload luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/update.json --clobber
+            gh release upload luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/update.json --clobber
             gh release edit luqa-launcher-latest --title "Luqa launcher $VERSION_NAME" \
               --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           else
-            gh release create luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/update.json \
+            gh release create luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/update.json \
               --target "$GITHUB_SHA" --title "Luqa launcher $VERSION_NAME" \
               --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           fi

@@ -203,6 +203,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** game_day: each team's next game from an add-on, rotating in the race panel; null when the key is off. */
     private GameDay gameDay;
     private GozoWeather gozoWeather;
+    private GozoFootball gozoFootball;
     private View raceBar;
     private LinearLayout racePager;
     private long rotationStart;
@@ -509,7 +510,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (Config.gozoInlineWeather(this)) gozoWeather = new GozoWeather(this, root);
+        if (Config.gozoInlineWeather(this)) {
+            gozoWeather = new GozoWeather(this, root);
+            gozoFootball = new GozoFootball(this, root);
+        }
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
         // black under it is a second full-screen fill on every frame for nothing. The starting window still uses
         // the theme's background, so launch looks the same.
@@ -1140,6 +1144,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (showStats) startStats();
         if (gameDay != null) gameDay.start();
         if (gozoWeather != null) gozoWeather.start();
+        if (gozoFootball != null) gozoFootball.start();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);

@@ -105,8 +105,15 @@ public final class MainActivity extends Activity {
             footballView.invalidate();
             return true;
         }
-        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_MENU
-                || keyCode == KeyEvent.KEYCODE_SETTINGS) {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            footballView.moveSection(-1);
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+            footballView.moveSection(1);
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_MENU || keyCode == KeyEvent.KEYCODE_SETTINGS) {
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
@@ -269,6 +276,7 @@ public final class MainActivity extends Activity {
             JSONObject status = competition.optJSONObject("status");
             JSONObject type = status == null ? null : status.optJSONObject("type");
             String state = type == null ? "pre" : type.optString("state", "pre");
+            String statusDetail = type == null ? "" : type.optString("shortDetail", "");
 
             String opponent = null;
             String ourScore = "";
@@ -293,7 +301,7 @@ public final class MainActivity extends Activity {
             }
             if (opponent == null) return null;
             return new Match(id, kickoff, opponent, FootballConfig.competitionName(competitionSlug), state,
-                    ourScore, theirScore, home);
+                    statusDetail, ourScore, theirScore, home);
         } catch (Exception ignored) {
             return null;
         }
@@ -303,6 +311,7 @@ public final class MainActivity extends Activity {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Map<Integer, List<Match>> data = new HashMap<>();
         private int selected = 0;
+        private int section = 0;
         private boolean loading = false;
         private long lastUpdated = 0L;
         private String message;
@@ -317,6 +326,11 @@ public final class MainActivity extends Activity {
         boolean hasAnyData() {
             for (List<Match> list : data.values()) if (list != null && !list.isEmpty()) return true;
             return false;
+        }
+
+        void moveSection(int amount) {
+            section = (section + amount + 3) % 3;
+            invalidate();
         }
 
         @Override
@@ -355,6 +369,20 @@ public final class MainActivity extends Activity {
             Match next = nextMatch(matches);
             Match previous = previousMatch(matches);
 
+            drawSectionTabs(canvas);
+            if (section == 1) {
+                drawFixtures(canvas, team, matches);
+                drawControls(canvas);
+                canvas.restore();
+                return;
+            }
+            if (section == 2) {
+                drawResults(canvas, team, matches);
+                drawControls(canvas);
+                canvas.restore();
+                return;
+            }
+
             drawRound(canvas, 150, 335, 1050, 635, 34, Color.argb(150, 255, 255, 255));
             strokeRound(canvas, 150, 335, 1050, 635, 34, Color.argb(80, 255, 255, 255), 2);
             paint.setColor(team.color);
@@ -366,8 +394,13 @@ public final class MainActivity extends Activity {
                 text(canvas, next.competition, 200, 475, 24, Color.argb(185, 255, 255, 255), false);
                 text(canvas, next.home ? team.name + "  vs  " + next.opponent : next.opponent + "  vs  " + team.name,
                         200, 535, 34, Color.WHITE, true);
-                text(canvas, formatWhen(next.kickoff), 200, 585, 27, Color.argb(235, 255, 255, 255), false);
-                String countdown = countdown(next.kickoff);
+                String when = "in".equals(next.state)
+                        ? "LIVE  ·  " + score(next.ourScore) + " – " + score(next.theirScore)
+                        + (next.statusDetail.isEmpty() ? "" : "  ·  " + next.statusDetail)
+                        : formatWhen(next.kickoff);
+                text(canvas, when, 200, 585, 27,
+                        "in".equals(next.state) ? 0xFFFFB4A8 : Color.argb(235, 255, 255, 255), false);
+                String countdown = "in".equals(next.state) ? "" : countdown(next.kickoff);
                 if (!countdown.isEmpty()) textRight(canvas, countdown, 1000, 585, 27, team.color);
             } else {
                 text(canvas, message == null ? "No upcoming fixture found" : message,
@@ -402,13 +435,88 @@ public final class MainActivity extends Activity {
                 text(canvas, "No recent result loaded", 195, 790, 27, Color.argb(190, 255, 255, 255), false);
             }
 
-            drawRound(canvas, 1090, 845, 675, 80, 24, Color.argb(75, 255, 255, 255));
-            text(canvas, "←  →  choose team", 1140, 895, 21, Color.argb(195, 255, 255, 255), false);
-            textRight(canvas, "↓ settings   •   OK refresh", 1710, 895, 21, Color.argb(195, 255, 255, 255));
+            drawControls(canvas);
 
             text(canvas, "Fixtures via ESPN public schedule endpoints • cached for 15 minutes",
                     150, 960, 18, Color.argb(110, 255, 255, 255), false);
             canvas.restore();
+        }
+
+        private void drawSectionTabs(Canvas canvas) {
+            String[] labels = {"OVERVIEW", "FIXTURES", "RESULTS"};
+            float x = 700;
+            for (int i = 0; i < labels.length; i++) {
+                boolean active = section == i;
+                drawRound(canvas, x + i * 185, 112, 165, 54, 18,
+                        active ? Color.argb(70, 255, 255, 255) : Color.argb(22, 255, 255, 255));
+                strokeRound(canvas, x + i * 185, 112, 165, 54, 18,
+                        active ? Color.argb(180, 255, 255, 255) : Color.argb(24, 255, 255, 255),
+                        active ? 2 : 1);
+                textCentered(canvas, labels[i], x + i * 185 + 82, 147, 17,
+                        active ? Color.WHITE : Color.argb(150, 255, 255, 255), true);
+            }
+        }
+
+        private void drawFixtures(Canvas canvas, FootballConfig.Team team, List<Match> matches) {
+            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(145, 255, 255, 255));
+            strokeRound(canvas, 150, 335, 1615, 590, 34, Color.argb(65, 255, 255, 255), 2);
+            text(canvas, "Upcoming fixtures", 205, 405, 32, Color.WHITE, true);
+            List<Match> fixtures = upcoming(matches, 6);
+            if (fixtures.isEmpty()) {
+                text(canvas, message == null ? "No upcoming fixtures loaded" : message,
+                        205, 500, 28, Color.argb(190, 255, 255, 255), false);
+                return;
+            }
+            float y = 455;
+            for (Match match : fixtures) {
+                boolean live = "in".equals(match.state);
+                drawRound(canvas, 195, y, 1525, 66, 19,
+                        live ? Color.argb(48, 218, 41, 28) : Color.argb(27, 255, 255, 255));
+                text(canvas, live ? "LIVE" : shortDate(match.kickoff), 225, y + 41, 18,
+                        live ? 0xFFFFA99E : Color.argb(170, 255, 255, 255), live);
+                String pairing = match.home ? team.name + "  v  " + match.opponent
+                        : match.opponent + "  v  " + team.name;
+                text(canvas, pairing, 420, y + 40, 23, Color.WHITE, true);
+                textRight(canvas, live ? score(match.ourScore) + " – " + score(match.theirScore)
+                                : shortTime(match.kickoff), 1660, y + 39, 22, Color.WHITE);
+                textRight(canvas, match.competition, 1435, y + 39, 17,
+                        Color.argb(145, 255, 255, 255));
+                y += 78;
+            }
+        }
+
+        private void drawResults(Canvas canvas, FootballConfig.Team team, List<Match> matches) {
+            drawRound(canvas, 150, 335, 1615, 590, 34, Color.argb(145, 255, 255, 255));
+            strokeRound(canvas, 150, 335, 1615, 590, 34, Color.argb(65, 255, 255, 255), 2);
+            text(canvas, "Recent results", 205, 405, 32, Color.WHITE, true);
+            List<Match> results = results(matches, 6);
+            if (results.isEmpty()) {
+                text(canvas, "No recent results loaded", 205, 500, 28,
+                        Color.argb(190, 255, 255, 255), false);
+                return;
+            }
+            float y = 455;
+            for (Match match : results) {
+                drawRound(canvas, 195, y, 1525, 66, 19, Color.argb(27, 255, 255, 255));
+                text(canvas, shortDate(match.kickoff), 225, y + 41, 18,
+                        Color.argb(170, 255, 255, 255), false);
+                String pairing = match.home ? team.name + "  " + score(match.ourScore) + " – "
+                        + score(match.theirScore) + "  " + match.opponent
+                        : match.opponent + "  " + score(match.theirScore) + " – "
+                        + score(match.ourScore) + "  " + team.name;
+                text(canvas, pairing, 420, y + 40, 23, Color.WHITE, true);
+                textRight(canvas, match.competition, 1660, y + 39, 18,
+                        Color.argb(150, 255, 255, 255));
+                y += 78;
+            }
+        }
+
+        private void drawControls(Canvas canvas) {
+            drawRound(canvas, 1090, 845, 675, 80, 24, Color.argb(75, 255, 255, 255));
+            text(canvas, "←  →  team   ·   ↑  ↓  view", 1130, 895, 19,
+                    Color.argb(195, 255, 255, 255), false);
+            textRight(canvas, "MENU settings   ·   OK refresh", 1720, 895, 19,
+                    Color.argb(195, 255, 255, 255));
         }
 
         private void drawTeamPill(Canvas canvas, float x, float y, float w, float h, int index) {
@@ -486,7 +594,7 @@ public final class MainActivity extends Activity {
     private static Match nextMatch(List<Match> matches) {
         long now = System.currentTimeMillis() - 2L * 60L * 60L * 1000L;
         for (Match match : matches) {
-            if (!"post".equals(match.state) && match.kickoff >= now) return match;
+            if ("in".equals(match.state) || (!"post".equals(match.state) && match.kickoff >= now)) return match;
         }
         return null;
     }
@@ -503,10 +611,19 @@ public final class MainActivity extends Activity {
         List<Match> out = new ArrayList<>();
         long now = System.currentTimeMillis() - 2L * 60L * 60L * 1000L;
         for (Match match : matches) {
-            if (!"post".equals(match.state) && match.kickoff >= now) {
+            if ("in".equals(match.state) || (!"post".equals(match.state) && match.kickoff >= now)) {
                 out.add(match);
                 if (out.size() == limit) break;
             }
+        }
+        return out;
+    }
+
+    private static List<Match> results(List<Match> matches, int limit) {
+        List<Match> out = new ArrayList<>();
+        for (int i = matches.size() - 1; i >= 0 && out.size() < limit; i--) {
+            Match match = matches.get(i);
+            if ("post".equals(match.state) && match.kickoff <= System.currentTimeMillis()) out.add(match);
         }
         return out;
     }
@@ -562,17 +679,19 @@ public final class MainActivity extends Activity {
         final String opponent;
         final String competition;
         final String state;
+        final String statusDetail;
         final String ourScore;
         final String theirScore;
         final boolean home;
 
         Match(String id, long kickoff, String opponent, String competition, String state,
-              String ourScore, String theirScore, boolean home) {
+              String statusDetail, String ourScore, String theirScore, boolean home) {
             this.id = id;
             this.kickoff = kickoff;
             this.opponent = opponent;
             this.competition = competition;
             this.state = state;
+            this.statusDetail = statusDetail;
             this.ourScore = ourScore;
             this.theirScore = theirScore;
             this.home = home;
@@ -586,6 +705,7 @@ public final class MainActivity extends Activity {
                 object.put("opponent", opponent);
                 object.put("competition", competition);
                 object.put("state", state);
+                object.put("statusDetail", statusDetail);
                 object.put("ourScore", ourScore);
                 object.put("theirScore", theirScore);
                 object.put("home", home);
@@ -598,7 +718,8 @@ public final class MainActivity extends Activity {
             try {
                 return new Match(object.getString("id"), object.getLong("kickoff"),
                         object.getString("opponent"), object.getString("competition"),
-                        object.optString("state", "pre"), object.optString("ourScore", ""),
+                        object.optString("state", "pre"), object.optString("statusDetail", ""),
+                        object.optString("ourScore", ""),
                         object.optString("theirScore", ""), object.optBoolean("home", false));
             } catch (Exception ignored) {
                 return null;
