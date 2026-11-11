@@ -17,4 +17,3 @@ The GitHub Releases count is the number of published device channels, not the nu
 Add a separate fixed release tag and updater policy for another box only after that physical box's package identity, signing certificate, configuration backup and recovery route have been verified. This can produce `t9-launcher-latest` and `birzebbuga-launcher-latest` channels later without splitting shared source into three long-lived branches.
 
 Draft PR [#4](https://github.com/Wiggli/cleanyourtvhomeL/pull/4) is an opt-in Stremio content-row experiment for the shared launcher. Its target box has not been confirmed in this inventory, so it remains fork-wide development rather than being assigned to one of the three profiles.
-

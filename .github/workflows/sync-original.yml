@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/sync-original.yml"
 
 concurrency:
   group: sync-original-main
@@ -41,6 +45,16 @@ jobs:
           fi
 
           common=$(git merge-base origin/main upstream/main)
+          launcher_patch="$RUNNER_TEMP/luqa-launcher.patch"
+          git diff --binary "$common" origin/main -- \
+            launcher/app/src/main/AndroidManifest.xml \
+            launcher/app/src/main/java/com/gathin/tvhome/Config.java \
+            launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java \
+            launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java > "$launcher_patch"
+          test -s "$launcher_patch" || {
+            echo "::error::The Luqa inline-weather launcher patch is missing"
+            exit 1
+          }
           if git diff --quiet origin/main upstream/main -- launcher; then
             echo "launcher_changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -48,9 +62,9 @@ jobs:
           fi
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|.github/sync-heartbeat|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|tools/luqa-update.sh|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/Config.java|launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|.github/sync-heartbeat|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
-                echo "::error::Unexpected fork change outside the theme: $changed_path"
+                echo "::error::Unexpected fork change outside the preserved Luqa paths: $changed_path"
                 exit 1
                 ;;
             esac
@@ -59,7 +73,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --detach upstream/main
+          git apply --3way "$launcher_patch" || {
+            echo "::error::Upstream changed a Luqa inline-weather anchor; manual review is required"
+            exit 1
+          }
           git checkout origin/main -- boxes fork/luqa-launcher-updater themes/family-gozo addons/gozo-football \
+            tools/luqa-update.sh \
             .github/sync-heartbeat .github/workflows/sync-original.yml \
             .github/workflows/keep-sync-alive.yml .github/workflows/publish-luqa-launcher.yml
           git rm -f --ignore-unmatch .github/workflows/maintainer-bot.yml
@@ -84,6 +103,15 @@ jobs:
                          if line.startswith("| [Weather](weather/) |"))
           addon_lines.insert(weather + 1, addon_row)
           addons.write_text("\n".join(addon_lines) + "\n", encoding="utf-8")
+
+          tool_row = '| [`tools/luqa-update.sh`](tools/luqa-update.sh) | Luqa-only supervised recovery path: identifies the box, requires explicit confirmation, builds the launcher and football add-on from the fork\'s `main`, and installs them from a computer on the same trusted network. Normal periodic launcher updates use the on-TV updater instead. |'
+          front = Path("README.md")
+          front_lines = [line for line in front.read_text(encoding="utf-8").splitlines()
+                         if not line.startswith("| [`tools/luqa-update.sh`](tools/luqa-update.sh) |")]
+          theme_tool = next(i for i, line in enumerate(front_lines)
+                            if line.startswith("| [`tools/theme.sh`](tools/theme.sh)"))
+          front_lines.insert(theme_tool + 1, tool_row)
+          front.write_text("\n".join(front_lines) + "\n", encoding="utf-8")
 
           count = sum((folder / "config.json").is_file() for folder in Path("themes").iterdir()
                       if folder.is_dir())
