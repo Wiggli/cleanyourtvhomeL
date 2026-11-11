@@ -1,19 +1,21 @@
 # Gozo Football
 
-A small Android TV football dashboard built for the Luqa box and its `family-gozo` theme. Manchester United, AC Milan, England and Italy are selected initially, while the television settings screen allows each team and competition to be enabled or hidden without changing the launcher itself.
+An Android TV match centre built for the Luqa parents' box and its `family-gozo` theme. Manchester United, AC Milan, England and Italy are selected initially, while the television settings screen allows each team and competition to be enabled or hidden without changing the launcher itself.
 
-The launcher only sees the normal module-card declaration. Installing this add-on is optional and it should only be installed on the Gozo TV if the football card is wanted there. Other TVs and themes are unaffected.
+Installing this add-on is optional and it should only be installed on the Luqa Gozo-themed TV if the football experience is wanted there. Other TVs and themes are unaffected.
 
 ## What it shows
 
 - selectable Manchester United, AC Milan, England and Italy interests
 - a remote-friendly competition menu covering domestic leagues and cups, UEFA competitions and international football
+- separate Overview, Fixtures and Results views controlled with the directional pad
 - next fixture with Malta/device-local kickoff time and countdown
-- up to three upcoming fixtures
-- most recent result
+- up to six upcoming fixtures and six recent results
+- live score and match-status treatment when ESPN marks a fixture in progress
 - translucent Apple-style panel designed to sit over the Gozo wallpaper
 - cached data shown immediately when available, with a 15-minute refresh window
-- D-pad Left/Right changes team, Down opens settings, OK refreshes and Back closes
+- a read-only interests bridge that lets the Gozo launcher show the next selected fixture on Home
+- D-pad Left/Right changes team, Up/Down changes view, Menu opens settings, OK refreshes and Back closes
 
 The app queries ESPN's public, undocumented schedule JSON endpoints for a small curated set of domestic, UEFA and FIFA competitions. Competition endpoints that are unavailable are ignored, and the last successful data remains cached on the TV. Because the ESPN interface is undocumented, it can change without notice.
 
@@ -34,7 +36,7 @@ cd addons/gozo-football
 ./gradlew assembleRelease
 ```
 
-Install the resulting APK only on the Gozo TV. Once installed, Home will discover the `Football` module card and ask once whether it should be shown. The decision is stored by the launcher against the add-on signing key, following the repository's normal module-card contract.
+Install the resulting APK only on the Luqa Gozo-themed TV. Once installed, Home discovers the `Football` module card and asks once whether it should be shown. The Home match panel reads only the selected team names, public ESPN identifiers and enabled competitions; settings remain writable only inside the football app.
 
 ## Data configuration
 
@@ -45,8 +47,8 @@ The four initial team choices are:
 - England - ESPN team ID `448`
 - Italy - ESPN team ID `162`
 
-All four teams are shown on first use. Open the dashboard and press Down to choose which teams appear, then enable or hide the Premier League, Serie A, Champions League, Europa League, domestic cups, World Cup, Nations League, European Championship and international friendlies. At least one team and one competition always remain selected, while the app only checks competitions that apply to each enabled team and merges duplicate event IDs before display.
+All four teams are shown on first use. Open the dashboard and press Menu to choose which teams appear, then enable or hide the Premier League, Serie A, Champions League, Europa League, domestic cups, World Cup, Nations League, European Championship and international friendlies. At least one team and one competition always remain selected, while the app only checks competitions that apply to each enabled team and merges duplicate event IDs before display.
 
 ## Tested on
 
-Installed and checked on the Amino GO Amigo7xGM running Android TV 12 used by the Luqa `family-gozo` setup. The live ESPN refresh, cached results, team switching, settings screen and D-pad navigation were verified on the television.
+The release and unit builds are checked against Android TV API 34. Installation and D-pad verification of this expanded version still require the Luqa Amino GO Amigo7xGM to be powered on.
