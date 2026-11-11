@@ -49,6 +49,7 @@ jobs:
           git diff --binary "$common" origin/main -- \
             launcher/app/src/main/AndroidManifest.xml \
             launcher/app/src/main/java/com/gathin/tvhome/Config.java \
+            launcher/app/src/main/java/com/gathin/tvhome/GozoFootball.java \
             launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java \
             launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java > "$launcher_patch"
           test -s "$launcher_patch" || {
@@ -62,7 +63,7 @@ jobs:
           fi
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|tools/luqa-update.sh|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/Config.java|launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|.github/sync-heartbeat|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|tools/luqa-update.sh|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/Config.java|launcher/app/src/main/java/com/gathin/tvhome/GozoFootball.java|launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|.github/sync-heartbeat|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the preserved Luqa paths: $changed_path"
                 exit 1
