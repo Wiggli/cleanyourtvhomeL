@@ -45,13 +45,16 @@ import static com.wiggli.gozofootball.MatchdayFeed.array;
 import static com.wiggli.gozofootball.MatchdayFeed.child;
 
 public final class MatchdayActivity extends Activity {
-    private static final int INK = 0xffeef5ff;
-    private static final int MUTED = 0xffa8b9cc;
-    private static final int GREEN = 0xff6be6b7;
-    private static final int SURFACE = 0xff142236;
-    private static final int SELECTED = 0xff23443f;
+    private static final int INK = 0xfff4f7fc;
+    private static final int MUTED = 0xffaebdce;
+    private static final int ACCENT = 0xff86d8ff;
+    private static final int LIVE = 0xff82e6ad;
+    private static final int SURFACE = 0xb82a3b52;
+    private static final int SELECTED = 0xff284660;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.ENGLISH);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
+    private static final DateTimeFormatter MATCH_DATE =
+            DateTimeFormatter.ofPattern("EEE, d MMM  'at'  HH:mm z", Locale.ENGLISH);
     private enum Page { MATCHES, FAVOURITES, TABLES, DETAILS }
 
     private final ExecutorService feed = Executors.newFixedThreadPool(5);
@@ -93,9 +96,9 @@ public final class MatchdayActivity extends Activity {
         date = LocalDate.now();
         root = column();
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                new int[]{0xff132339, 0xff080e1a, 0xff11251f}));
+                new int[]{0xff203850, 0xff101b2b, 0xff101827}));
         root.setPadding(dp(30), dp(17), dp(30), dp(16));
-        root.addView(label("Football", 28, INK, true));
+        root.addView(label("Football", 32, INK, true));
         controls = column();
         root.addView(controls);
         scroll = new ScrollView(this);
@@ -312,25 +315,38 @@ public final class MatchdayActivity extends Activity {
         LinearLayout match = row();
         match.setTag(game.id);
         match.setPadding(dp(16), dp(7), dp(16), dp(7));
-        match.setMinimumHeight(dp(46));
+        match.setMinimumHeight(dp(48));
         match.setBackground(focusSurface(SURFACE));
         match.setFocusable(true);
         match.setOnClickListener(view -> openGame(game));
-        match.setContentDescription(game.home + " vs " + game.away + ", " + gameStatus(game));
-        addFixed(match, label(gameStatus(game), 15, "in".equals(game.state) ? GREEN : MUTED, true), 135);
+        String statusText = gameStatus(game);
+        match.setContentDescription(game.home + " vs " + game.away + ", kickoff " + kickoff(game)
+                + (statusText.isEmpty() ? "" : ", " + statusText));
+        addFixed(match, label(kickoff(game), 17, MUTED, true), 84);
         addWeighted(match, teamMark(game.home, game.homeId, 18, 24));
         addWeighted(match, teamMark(game.away, game.awayId, 18, 24));
-        match.addView(label(favourite ? "★   ›" : "›", 20, favourite ? GREEN : MUTED, true));
+        TextView status = centred(statusText, 15, "in".equals(game.state) ? LIVE : INK);
+        if (!statusText.isEmpty()) {
+            status.setBackground(surface(0x40101827));
+            status.setPadding(dp(8), dp(4), dp(8), dp(4));
+        }
+        addFixed(match, status, 120);
+        TextView affordance = centred(favourite ? "★   ›" : "›", 19, favourite ? ACCENT : MUTED);
+        addFixed(match, affordance, 50);
         addCard(content, match);
     }
 
     private String gameStatus(MatchdayFeed.Game game) {
         if ("pre".equals(game.state)) {
-            if (!game.status.isEmpty() && !"Scheduled".equalsIgnoreCase(game.status)) return game.status;
-            return TIME.format(Instant.ofEpochMilli(game.time).atZone(java.time.ZoneId.systemDefault()));
+            return "Scheduled".equalsIgnoreCase(game.status) ? "" : game.status;
         }
         String status = "in".equals(game.state) && game.status.isEmpty() ? "LIVE" : game.status;
         return game.score.isEmpty() ? status : game.score + (status.isEmpty() ? "" : "  ·  " + status);
+    }
+
+    private String kickoff(MatchdayFeed.Game game) {
+        return game.kickoffTbd ? "TBD"
+                : TIME.format(Instant.ofEpochMilli(game.time).atZone(java.time.ZoneId.systemDefault()));
     }
 
     private void openGame(MatchdayFeed.Game game) {
@@ -381,10 +397,18 @@ public final class MatchdayActivity extends Activity {
         hero.setPadding(dp(18), dp(12), dp(18), dp(12));
         hero.setBackground(surface(SURFACE));
         addWeighted(hero, teamMark(selectedGame.home, selectedGame.homeId, 22, 38));
-        hero.addView(centred(score, 30, GREEN));
+        TextView scoreboard = centred(score, 32, INK);
+        scoreboard.setPadding(dp(20), dp(5), dp(20), dp(5));
+        scoreboard.setBackground(surface(0x66101827));
+        hero.addView(scoreboard);
         addWeighted(hero, teamMark(selectedGame.away, selectedGame.awayId, 22, 38));
         addCard(content, hero);
-        note("pre".equals(selectedGame.state) ? gameStatus(selectedGame) : selectedGame.status);
+        String date = selectedGame.kickoffTbd ? DAY.format(Instant.ofEpochMilli(selectedGame.time)
+                .atZone(java.time.ZoneId.systemDefault())) + "  ·  Kickoff TBD"
+                : MATCH_DATE.format(Instant.ofEpochMilli(selectedGame.time).atZone(java.time.ZoneId.systemDefault()));
+        String status = gameStatus(selectedGame);
+        if (!"pre".equals(selectedGame.state)) status = selectedGame.status;
+        note(date + (status.isEmpty() ? "" : "  ·  " + status));
         if (pending > 0) { note("Loading match details…"); return; }
         if (details == null) { note("Match details are unavailable. Go back and open the match to retry."); return; }
         switch (detailTab) {
@@ -426,7 +450,7 @@ public final class MatchdayActivity extends Activity {
             side.setBackground(surface(SURFACE));
             addWeighted(sides, side);
             side.addView(label(child(team, "team").optString("displayName"), 20, INK, true));
-            side.addView(label(MatchdayFeed.object(team, "formation"), 15, GREEN, true));
+            side.addView(label(MatchdayFeed.object(team, "formation"), 15, ACCENT, true));
             JSONArray players = array(team, "roster");
             for (boolean starter : new boolean[]{true, false}) {
                 boolean heading = false;
@@ -436,7 +460,7 @@ public final class MatchdayActivity extends Activity {
                     String name = child(player, "athlete").optString("displayName");
                     if (name.isEmpty()) continue;
                     if (!heading) {
-                        side.addView(label(starter ? "Starting XI" : "Bench", 14, GREEN, true));
+                        side.addView(label(starter ? "Starting XI" : "Bench", 14, ACCENT, true));
                         heading = true;
                     }
                     side.addView(label(player.optString("jersey") + "   " + name, 16, INK, false));
@@ -462,8 +486,9 @@ public final class MatchdayActivity extends Activity {
         for (int i = 0; i < homeStats.length(); i++) {
             JSONObject stat = homeStats.optJSONObject(i);
             if (stat == null) continue;
-            scoreRow(stat.optString("displayValue", "—"), stat.optString("label", stat.optString("name")),
-                    statValue(awayStats, stat.optString("name")));
+            String left = stat.optString("displayValue", "—");
+            String right = statValue(awayStats, stat.optString("name"));
+            statRow(left, stat.optString("label", stat.optString("name")), right);
         }
     }
 
@@ -546,22 +571,63 @@ public final class MatchdayActivity extends Activity {
     private void tableRow(String position, String name, String played, String gd, String points, boolean favourite) {
         LinearLayout row = cardRow();
         addFixed(row, label(position, 15, MUTED, false), 65);
-        addWeighted(row, label(name, 17, favourite ? GREEN : INK, true));
+        addWeighted(row, label(name, 17, favourite ? ACCENT : INK, true));
         for (String value : new String[]{played, gd, points}) addFixed(row, centred(value, 16, INK), 78);
         addCard(content, row);
     }
 
     private void scoreRow(String left, String title, String right) {
         LinearLayout row = cardRow();
+        fillScoreRow(row, left, title, right);
+        addCard(content, row);
+    }
+
+    private void fillScoreRow(LinearLayout row, String left, String title, String right) {
         addWeighted(row, centred(left, 17, INK));
         addWeighted(row, centred(title, 16, MUTED));
         addWeighted(row, centred(right, 17, INK));
-        addCard(content, row);
+    }
+
+    private void statRow(String left, String title, String right) {
+        LinearLayout card = column();
+        card.setPadding(dp(14), dp(6), dp(14), dp(9));
+        card.setBackground(surface(SURFACE));
+        LinearLayout values = row();
+        fillScoreRow(values, left, title, right);
+        card.addView(values);
+        float home = numericStat(left);
+        float away = numericStat(right);
+        if (home >= 0 && away >= 0 && home + away > 0) {
+            LinearLayout bar = row();
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(4));
+            params.setMargins(dp(30), dp(5), dp(30), 0);
+            card.addView(bar, params);
+            if (home > 0) addStatBar(bar, home, ACCENT);
+            if (away > 0) addStatBar(bar, away, 0xffb6b0ee);
+        }
+        addCard(content, card);
+    }
+
+    private void addStatBar(LinearLayout bar, float value, int colour) {
+        View segment = new View(this);
+        segment.setBackground(surface(colour));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, value);
+        params.setMargins(dp(2), 0, dp(2), 0);
+        bar.addView(segment, params);
+    }
+
+    private static float numericStat(String value) {
+        try {
+            float number = Float.parseFloat(value.replace("%", "").trim());
+            return Float.isFinite(number) ? number : -1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
     }
 
     private void dataRow(String time, String title) {
         LinearLayout row = cardRow();
-        addFixed(row, label(time, 15, GREEN, true), 78);
+        addFixed(row, label(time, 15, ACCENT, true), 78);
         addWeighted(row, label(title, 16, INK, false));
         addCard(content, row);
     }
@@ -585,7 +651,7 @@ public final class MatchdayActivity extends Activity {
     }
 
     private void section(String title) {
-        TextView text = label(title, 18, GREEN, true);
+        TextView text = label(title, 18, ACCENT, true);
         text.setPadding(0, dp(10), 0, dp(6));
         content.addView(text);
     }
@@ -597,7 +663,7 @@ public final class MatchdayActivity extends Activity {
     }
 
     private void button(LinearLayout parent, String title, boolean active, Runnable action) {
-        TextView button = centred(title, 15, active ? GREEN : INK);
+        TextView button = centred(title, 15, active ? ACCENT : INK);
         button.setTag(title);
         button.setFocusable(true);
         button.setPadding(dp(14), dp(6), dp(14), dp(6));
@@ -727,13 +793,14 @@ public final class MatchdayActivity extends Activity {
     private GradientDrawable surface(int colour) {
         GradientDrawable background = new GradientDrawable();
         background.setColor(colour);
-        background.setCornerRadius(dp(9));
+        background.setCornerRadius(dp(13));
+        if (colour == SURFACE || colour == SELECTED) background.setStroke(dp(1), 0x25ffffff);
         return background;
     }
 
     private StateListDrawable focusSurface(int colour) {
-        GradientDrawable focused = surface(colour == Color.TRANSPARENT ? colour : 0xff28465a);
-        focused.setStroke(dp(2), GREEN);
+        GradientDrawable focused = surface(colour == Color.TRANSPARENT ? colour : 0xff3a536e);
+        focused.setStroke(dp(2), 0xffe8f4ff);
         StateListDrawable states = new StateListDrawable();
         states.addState(new int[]{android.R.attr.state_focused}, focused);
         states.addState(new int[]{}, surface(colour));

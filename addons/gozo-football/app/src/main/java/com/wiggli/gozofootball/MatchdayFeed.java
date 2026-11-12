@@ -135,6 +135,7 @@ final class MatchdayFeed {
         final String league, id, home, away, state, status, score;
         final int homeId, awayId;
         final long time;
+        final boolean kickoffTbd;
 
         Game(String league, String id, long time, JSONObject home, JSONObject away, JSONObject status) {
             this.league = league;
@@ -148,6 +149,8 @@ final class MatchdayFeed {
             awayId = awayTeam.optInt("id");
             state = status.optString("state", "pre");
             this.status = status.optString("shortDetail");
+            kickoffTbd = "STATUS_TBD".equals(status.optString("name"))
+                    || "TBD".equalsIgnoreCase(this.status);
             String homeScore = score(home);
             String awayScore = score(away);
             score = homeScore.isEmpty() || awayScore.isEmpty() ? "" : homeScore + "  –  " + awayScore;

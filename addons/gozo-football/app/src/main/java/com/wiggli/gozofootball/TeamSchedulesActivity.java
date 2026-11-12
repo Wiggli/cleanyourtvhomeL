@@ -525,7 +525,7 @@ public final class TeamSchedulesActivity extends Activity {
             float y = 455;
             for (Match match : results) {
                 drawRound(canvas, 195, y, 1525, 66, 19, Color.argb(190, 25, 38, 54));
-                text(canvas, shortDate(match.kickoff), 225, y + 41, 18,
+                text(canvas, shortDate(match.kickoff) + "  " + shortTime(match.kickoff), 225, y + 41, 18,
                         Color.argb(170, 255, 255, 255), false);
                 String pairing = match.home ? team.name + "  " + score(match.ourScore) + " – "
                         + score(match.theirScore) + "  " + match.opponent
