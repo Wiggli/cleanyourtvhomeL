@@ -375,8 +375,8 @@ public final class MainActivity extends Activity {
             canvas.drawCircle(1690, 100, 390, paint);
             paint.setColor(Color.argb(24, 0, 102, 179));
             canvas.drawCircle(150, 980, 460, paint);
-            drawRound(canvas, 90, 65, 1830, 1015, 46, Color.argb(228, 14, 18, 27));
-            strokeRound(canvas, 90, 65, 1830, 1015, 46, Color.argb(70, 255, 255, 255), 2);
+            drawRound(canvas, 90, 65, 1740, 950, 46, Color.argb(228, 14, 18, 27));
+            strokeRound(canvas, 90, 65, 1740, 950, 46, Color.argb(70, 255, 255, 255), 2);
 
             text(canvas, "Football", 150, 145, 48, Color.WHITE, true);
             text(canvas, "Match centre", 150, 187, 24, Color.argb(185, 255, 255, 255), false);
@@ -411,8 +411,8 @@ public final class MainActivity extends Activity {
                 return;
             }
 
-            drawRound(canvas, 150, 335, 1050, 635, 34, Color.argb(218, 15, 27, 42));
-            strokeRound(canvas, 150, 335, 1050, 635, 34, Color.argb(80, 255, 255, 255), 2);
+            drawRound(canvas, 150, 335, 900, 590, 34, Color.argb(218, 15, 27, 42));
+            strokeRound(canvas, 150, 335, 900, 590, 34, Color.argb(80, 255, 255, 255), 2);
             drawTeamMark(canvas, team, 220, 410, 72);
             text(canvas, team.name, 282, 405, 38, Color.WHITE, true);
 
@@ -443,22 +443,23 @@ public final class MainActivity extends Activity {
             } else {
                 for (Match match : upcoming) {
                     text(canvas, shortDate(match.kickoff), 1140, rowY, 21, Color.argb(170, 255, 255, 255), false);
-                    text(canvas, match.opponent, 1325, rowY, 24, Color.WHITE, true);
+                    text(canvas, match.opponent, 1325, rowY, 24, Color.WHITE, true, 295);
                     textRight(canvas, shortTime(match.kickoff), 1710, rowY, 22, Color.argb(210, 255, 255, 255));
-                    text(canvas, match.competition, 1325, rowY + 30, 18, Color.argb(145, 255, 255, 255), false);
+                    text(canvas, match.competition, 1325, rowY + 30, 18,
+                            Color.argb(145, 255, 255, 255), false, 385);
                     rowY += 112;
                 }
             }
 
-            drawRound(canvas, 150, 675, 900, 170, 30, Color.argb(205, 20, 31, 46));
-            text(canvas, "Latest result", 195, 730, 24, Color.argb(175, 255, 255, 255), false);
+            drawRound(canvas, 190, 665, 820, 200, 30, Color.argb(205, 20, 31, 46));
+            text(canvas, "Latest result", 225, 715, 24, Color.argb(175, 255, 255, 255), false);
             if (previous != null) {
                 String result = team.name + "  " + score(previous.ourScore) + "  –  "
                         + score(previous.theirScore) + "  " + previous.opponent;
-                text(canvas, result, 195, 790, 30, Color.WHITE, true);
-                textRight(canvas, previous.competition, 1000, 790, 21, Color.argb(160, 255, 255, 255));
+                text(canvas, result, 225, 770, 30, Color.WHITE, true, 750);
+                text(canvas, previous.competition, 225, 817, 21, Color.argb(160, 255, 255, 255), false);
             } else {
-                text(canvas, "No recent result loaded", 195, 790, 27, Color.argb(190, 255, 255, 255), false);
+                text(canvas, "No recent result loaded", 225, 770, 27, Color.argb(190, 255, 255, 255), false);
             }
 
             drawControls(canvas);
@@ -538,10 +539,10 @@ public final class MainActivity extends Activity {
         }
 
         private void drawControls(Canvas canvas) {
-            drawRound(canvas, 1090, 845, 675, 80, 24, Color.argb(205, 21, 33, 48));
-            text(canvas, "←  →  team   ·   ↑  ↓  view", 1130, 895, 19,
+            drawRound(canvas, 1090, 941, 675, 54, 20, Color.argb(205, 21, 33, 48));
+            text(canvas, "←  →  team   ·   ↑  ↓  view", 1130, 975, 19,
                     Color.argb(195, 255, 255, 255), false);
-            textRight(canvas, "MENU settings   ·   OK refresh", 1720, 895, 19,
+            textRight(canvas, "Settings key   ·   OK refresh", 1720, 975, 19,
                     Color.argb(195, 255, 255, 255));
         }
 
@@ -595,11 +596,16 @@ public final class MainActivity extends Activity {
         }
 
         private void text(Canvas c, String value, float x, float y, float size, int color, boolean bold) {
+            text(c, value, x, y, size, color, bold, 760);
+        }
+
+        private void text(Canvas c, String value, float x, float y, float size, int color, boolean bold,
+                          float maxWidth) {
             paint.setTextSize(size);
             paint.setColor(color);
             paint.setTypeface(bold ? android.graphics.Typeface.DEFAULT_BOLD : android.graphics.Typeface.DEFAULT);
             paint.setTextAlign(Paint.Align.LEFT);
-            c.drawText(ellipsize(value, size, 760), x, y, paint);
+            c.drawText(ellipsize(value, size, maxWidth), x, y, paint);
         }
 
         private void textRight(Canvas c, String value, float x, float y, float size, int color) {
