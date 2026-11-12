@@ -5,13 +5,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
-import android.view.WindowManager;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,12 +40,14 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class MainActivity extends Activity {
     private static final long CACHE_MS = 15L * 60L * 1000L;
     private static final String PREFS = "gozo_football_cache";
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private final Map<Integer, Bitmap> teamLogos = new ConcurrentHashMap<>();
     private FootballView footballView;
     private List<FootballConfig.Team> enabledTeams = new ArrayList<>();
     private String configurationSignature;
@@ -53,10 +56,6 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Window window = getWindow();
-        window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-        WindowManager.LayoutParams params = window.getAttributes();
-        params.dimAmount = 0.30f;
-        window.setAttributes(params);
         window.getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -69,10 +68,34 @@ public final class MainActivity extends Activity {
         configurationSignature = configurationSignature();
         footballView = new FootballView();
         setContentView(footballView);
+        loadTeamLogos();
         loadCache();
         long updated = getSharedPreferences(PREFS, MODE_PRIVATE).getLong("updated", 0L);
         if (System.currentTimeMillis() - updated > CACHE_MS || !footballView.hasAnyData()) {
             refresh(false);
+        }
+    }
+
+    private void loadTeamLogos() {
+        for (FootballConfig.Team team : enabledTeams) {
+            executor.execute(() -> {
+                HttpURLConnection connection = null;
+                try {
+                    URL url = new URL("https://a.espncdn.com/i/teamlogos/soccer/500/" + team.espnId + ".png");
+                    connection = (HttpURLConnection) url.openConnection();
+                    connection.setConnectTimeout(5000);
+                    connection.setReadTimeout(6000);
+                    if (connection.getResponseCode() / 100 != 2) return;
+                    Bitmap logo = BitmapFactory.decodeStream(connection.getInputStream());
+                    if (logo != null) {
+                        teamLogos.put(team.espnId, logo);
+                        runOnUiThread(() -> footballView.invalidate());
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    if (connection != null) connection.disconnect();
+                }
+            });
         }
     }
 
@@ -390,10 +413,8 @@ public final class MainActivity extends Activity {
 
             drawRound(canvas, 150, 335, 1050, 635, 34, Color.argb(218, 15, 27, 42));
             strokeRound(canvas, 150, 335, 1050, 635, 34, Color.argb(80, 255, 255, 255), 2);
-            paint.setColor(team.color);
-            canvas.drawCircle(220, 410, 34, paint);
-            textCentered(canvas, team.shortName, 220, 420, 20, Color.WHITE, true);
-            text(canvas, team.name, 280, 405, 38, Color.WHITE, true);
+            drawTeamMark(canvas, team, 220, 410, 72);
+            text(canvas, team.name, 282, 405, 38, Color.WHITE, true);
 
             if (next != null) {
                 text(canvas, next.competition, 200, 475, 24, Color.argb(185, 255, 255, 255), false);
@@ -532,8 +553,23 @@ public final class MainActivity extends Activity {
             drawRound(canvas, x, y, w, h, 26, fill);
             strokeRound(canvas, x, y, w, h, 26,
                     active ? Color.argb(210, 255, 255, 255) : Color.argb(45, 255, 255, 255), active ? 3 : 2);
-            text(canvas, team.shortName, x + 26, y + 52, 23, Color.WHITE, true);
-            text(canvas, team.name, x + 90, y + 52, 22, Color.WHITE, active);
+            drawTeamMark(canvas, team, x + 48, y + h / 2, 48);
+            text(canvas, team.name, x + 88, y + 52, 22, Color.WHITE, active);
+        }
+
+        private void drawTeamMark(Canvas canvas, FootballConfig.Team team, float cx, float cy, float size) {
+            paint.setColor(Color.argb(225, 245, 247, 250));
+            canvas.drawCircle(cx, cy, size / 2, paint);
+            Bitmap logo = teamLogos.get(team.espnId);
+            if (logo != null) {
+                float inset = size * 0.13f;
+                canvas.drawBitmap(logo, null,
+                        new RectF(cx - size / 2 + inset, cy - size / 2 + inset,
+                                cx + size / 2 - inset, cy + size / 2 - inset), paint);
+            } else {
+                textCentered(canvas, team.shortName, cx, cy + size * 0.12f,
+                        Math.max(15, size * 0.27f), team.color, true);
+            }
         }
 
         private String updatedLabel() {

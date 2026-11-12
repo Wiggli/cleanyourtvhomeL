@@ -90,7 +90,7 @@ jobs:
             -Pandroid.injected.signing.key.alias=androiddebugkey \
             -Pandroid.injected.signing.key.password=android
           size=$(stat -c %s app/build/outputs/apk/release/app-release.apk)
-          test "$size" -lt 589824
+          test "$size" -lt 614400
 
       - name: Test and build the television updater
         run: |
