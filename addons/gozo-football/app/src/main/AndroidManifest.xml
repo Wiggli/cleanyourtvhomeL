@@ -38,10 +38,5 @@
                 android:name="com.gathin.tvhome.card"
                 android:resource="@xml/module_card" />
         </activity-alias>
-        <activity android:name=".TeamSchedulesActivity" android:exported="false" />
-        <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GozoFootball.Settings" />
     </application>
 </manifest>

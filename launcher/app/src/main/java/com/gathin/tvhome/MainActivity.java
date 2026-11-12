@@ -761,6 +761,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (gozoWeather != null) {
+                    int shift = rv.canScrollVertically(-1) ? Math.max(0, rv.computeVerticalScrollOffset()) : 0;
+                    float alpha = Math.max(0f, 1f - shift / (48f * density));
+                    gozoWeather.positionForScroll(shift, alpha);
+                    gozoFootball.positionForScroll(shift, alpha);
+                }
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
@@ -3726,6 +3732,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         PopupWindow popup = glassPopup(panel, (int) (200 * density));
         if (!launcherSettingsButton) addSettingsMenuRow(rows, popup, R.string.launcher_settings, () -> startActivityForResult(
                 new Intent(this, LauncherSettingsActivity.class), LAUNCHER_SETTINGS_REQUEST));
+        else addSettingsMenuRow(rows, popup, R.string.settings, () -> open(systemIntent(Settings.ACTION_SETTINGS)));
         // Firmware that ships its own settings app next to the AOSP one (Xiaomi China is one): the
         // vendor app holds pages the AOSP settings has no row for, such as Account & Security with
         // the ADB switch. Offered here only while one of them is installed.
