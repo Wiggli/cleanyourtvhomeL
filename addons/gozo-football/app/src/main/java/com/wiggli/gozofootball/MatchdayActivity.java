@@ -54,7 +54,7 @@ public final class MatchdayActivity extends Activity {
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.ENGLISH);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
     private static final DateTimeFormatter MATCH_DATE =
-            DateTimeFormatter.ofPattern("EEE, d MMM  'at'  HH:mm z", Locale.ENGLISH);
+            DateTimeFormatter.ofPattern("EEE, d MMM 'at' HH:mm", Locale.ENGLISH);
     private enum Page { MATCHES, FAVOURITES, TABLES, DETAILS }
 
     private final ExecutorService feed = Executors.newFixedThreadPool(5);
@@ -448,7 +448,9 @@ public final class MatchdayActivity extends Activity {
             LinearLayout side = column();
             side.setPadding(dp(14), dp(10), dp(14), dp(10));
             side.setBackground(surface(SURFACE));
-            addWeighted(sides, side);
+            LinearLayout.LayoutParams sideParams = new LinearLayout.LayoutParams(0, -2, 1);
+            if (i == 1) sideParams.setMarginStart(dp(10));
+            sides.addView(side, sideParams);
             side.addView(label(child(team, "team").optString("displayName"), 20, INK, true));
             side.addView(label(MatchdayFeed.object(team, "formation"), 15, ACCENT, true));
             JSONArray players = array(team, "roster");
