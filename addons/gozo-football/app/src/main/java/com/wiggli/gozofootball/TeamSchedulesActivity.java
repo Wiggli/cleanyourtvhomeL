@@ -42,7 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class MainActivity extends Activity {
+public final class TeamSchedulesActivity extends Activity {
     private static final long CACHE_MS = 15L * 60L * 1000L;
     private static final String PREFS = "gozo_football_cache";
 
@@ -345,7 +345,7 @@ public final class MainActivity extends Activity {
         private String message;
 
         FootballView() {
-            super(MainActivity.this);
+            super(TeamSchedulesActivity.this);
             setFocusable(true);
             setFocusableInTouchMode(true);
             requestFocus();
@@ -525,7 +525,7 @@ public final class MainActivity extends Activity {
             float y = 455;
             for (Match match : results) {
                 drawRound(canvas, 195, y, 1525, 66, 19, Color.argb(190, 25, 38, 54));
-                text(canvas, shortDate(match.kickoff), 225, y + 41, 18,
+                text(canvas, shortDate(match.kickoff) + "  " + shortTime(match.kickoff), 225, y + 41, 18,
                         Color.argb(170, 255, 255, 255), false);
                 String pairing = match.home ? team.name + "  " + score(match.ourScore) + " – "
                         + score(match.theirScore) + "  " + match.opponent

@@ -20,7 +20,11 @@
             android:exported="true"
             android:readPermission="com.wiggli.gozofootball.READ_INTERESTS" />
         <activity
+            android:name=".MatchdayActivity"
+            android:exported="false" />
+        <activity-alias
             android:name=".MainActivity"
+            android:targetActivity=".MatchdayActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -33,7 +37,8 @@
             <meta-data
                 android:name="com.gathin.tvhome.card"
                 android:resource="@xml/module_card" />
-        </activity>
+        </activity-alias>
+        <activity android:name=".TeamSchedulesActivity" android:exported="false" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
