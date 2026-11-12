@@ -8,7 +8,7 @@ Installing this add-on is optional and it should only be installed on the Luqa G
 
 - Matches opens on the current local day, puts followed teams first and shows every competition with games in a filter rail.
 - Use the directional pad to highlight a match and OK to open its timeline, lineups and team stats. Back returns to the selected match.
-- Favourites shows upcoming fixtures and recent results for all followed teams or for a single team.
+- Favourites shows upcoming fixtures and recent results for all followed teams or for a single team. Choose **Add a team** to search ESPN's clubs and national teams.
 - Tables shows standings for the selected competition where ESPN supplies them.
 - Settings groups followed teams and competitions in the same interface. Changes are saved immediately. The Gozo Home widget still shows the next selected fixture.
 
@@ -43,7 +43,7 @@ The four initial team choices are:
 - England - ESPN team ID `448`
 - Italy - ESPN team ID `162`
 
-All four teams are shown on first use. Open Settings to choose which teams appear, then enable or hide the Premier League, Serie A, Champions League, Europa League, domestic cups, World Cup, Nations League, European Championship and international friendlies. At least one team and one competition always remain selected.
+All four teams are shown on first use. Follow or unfollow teams under Favourites or Settings. Matches and Tables show enabled competitions, including the major European leagues, Maltese Premier League, UEFA competitions and international football. A newly followed club can add its default league to the list. Search results may include teams for which ESPN publishes only partial or no match data. At least one team and one competition always remain selected.
 
 ## Tested on
 
