@@ -42,7 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class MainActivity extends Activity {
+public final class TeamSchedulesActivity extends Activity {
     private static final long CACHE_MS = 15L * 60L * 1000L;
     private static final String PREFS = "gozo_football_cache";
 
@@ -345,7 +345,7 @@ public final class MainActivity extends Activity {
         private String message;
 
         FootballView() {
-            super(MainActivity.this);
+            super(TeamSchedulesActivity.this);
             setFocusable(true);
             setFocusableInTouchMode(true);
             requestFocus();
