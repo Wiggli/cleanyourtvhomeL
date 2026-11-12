@@ -55,6 +55,7 @@ public final class MatchdayActivity extends Activity {
     private static final int SURFACE = 0xb82a3b52;
     private static final int SELECTED = 0xff284660;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.ENGLISH);
+    private static final DateTimeFormatter DATE_CHIP = DateTimeFormatter.ofPattern("EEE d", Locale.ENGLISH);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
     private static final DateTimeFormatter MATCH_DATE =
             DateTimeFormatter.ofPattern("EEE, d MMM 'at' HH:mm", Locale.ENGLISH);
@@ -310,11 +311,11 @@ public final class MatchdayActivity extends Activity {
             for (int i = 0; i < 7; i++) {
                 LocalDate day = week.plusDays(i);
                 String name = dayLabel(day);
-                button(days, name, day.equals(date), () -> selectDay(day));
+                dateButton(days, name, day.equals(date), () -> selectDay(day));
             }
             button(days, "›", false, () -> moveWeek(7)).setContentDescription("Next week");
             if (today.isBefore(week) || today.isAfter(week.plusDays(6))) {
-                button(days, "Today", false, () -> selectDay(today));
+                dateButton(days, "Today", false, () -> selectDay(today));
             }
         } else if (page == Page.FAVOURITES) {
             LinearLayout tabsRow = row();
@@ -341,7 +342,18 @@ public final class MatchdayActivity extends Activity {
         if (day.equals(today)) return "Today";
         if (day.equals(today.minusDays(1))) return "Yesterday";
         if (day.equals(today.plusDays(1))) return "Tomorrow";
-        return DAY.format(day);
+        return DATE_CHIP.format(day);
+    }
+
+    private void dateButton(LinearLayout row, String title, boolean active, Runnable action) {
+        TextView button = button(row, title, active, action);
+        LinearLayout.LayoutParams size = (LinearLayout.LayoutParams) button.getLayoutParams();
+        size.width = 0;
+        size.weight = 1;
+        button.setLayoutParams(size);
+        button.setSingleLine();
+        button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        button.setPadding(dp(6), dp(6), dp(6), dp(6));
     }
 
     private void changePage(Page next) {
