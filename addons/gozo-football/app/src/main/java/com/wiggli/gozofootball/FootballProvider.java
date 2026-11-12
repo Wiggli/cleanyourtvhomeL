@@ -33,6 +33,7 @@ public final class FootballProvider extends ContentProvider {
     private static final long CACHE_MS = 15L * 60L * 1000L;
     private static Candidate cached;
     private static long cachedAt;
+    private static java.util.Map<String, ?> cachedPreferences;
 
     @Override
     public boolean onCreate() {
@@ -46,13 +47,17 @@ public final class FootballProvider extends ContentProvider {
         if (getContext() == null || uri == null || !"next".equals(uri.getLastPathSegment())) return cursor;
         Candidate next;
         synchronized (FootballProvider.class) {
-            if (cached != null && System.currentTimeMillis() - cachedAt < CACHE_MS) {
+            SharedPreferences preferences = FootballConfig.preferences(getContext());
+            java.util.Map<String, ?> selected = preferences.getAll();
+            if (cached != null && selected.equals(cachedPreferences)
+                    && System.currentTimeMillis() - cachedAt < CACHE_MS) {
                 next = cached;
             } else {
-                next = fetchNext(FootballConfig.preferences(getContext()));
+                next = fetchNext(preferences);
                 if (next != null) {
                     cached = next;
                     cachedAt = System.currentTimeMillis();
+                    cachedPreferences = selected;
                 }
             }
         }

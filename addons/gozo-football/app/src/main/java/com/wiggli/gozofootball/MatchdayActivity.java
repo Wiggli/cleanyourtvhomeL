@@ -1,7 +1,6 @@
 package com.wiggli.gozofootball;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -30,6 +29,7 @@ import java.lang.ref.WeakReference;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -55,7 +55,7 @@ public final class MatchdayActivity extends Activity {
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
     private static final DateTimeFormatter MATCH_DATE =
             DateTimeFormatter.ofPattern("EEE, d MMM 'at' HH:mm", Locale.ENGLISH);
-    private enum Page { MATCHES, FAVOURITES, TABLES, DETAILS }
+    private enum Page { MATCHES, FAVOURITES, TABLES, SETTINGS, DETAILS }
 
     private final ExecutorService feed = Executors.newFixedThreadPool(5);
     private final ExecutorService images = Executors.newFixedThreadPool(3);
@@ -66,7 +66,7 @@ public final class MatchdayActivity extends Activity {
     private final Runnable liveTick = new Runnable() {
         @Override public void run() {
             if (pending == 0) {
-                if ((page == Page.MATCHES || page == Page.FAVOURITES)
+                if (page == Page.MATCHES
                         && date.equals(LocalDate.now()) && hasActiveMatch()) loadDay(true);
                 if (page == Page.DETAILS && active(selectedGame)) loadDetails(selectedGame, true);
             }
@@ -75,49 +75,58 @@ public final class MatchdayActivity extends Activity {
     };
     private final List<Future<?>> requests = new ArrayList<>();
     private final Map<String, List<MatchdayFeed.Game>> games = new LinkedHashMap<>();
+    private final Map<String, MatchdayFeed.Game> schedule = new LinkedHashMap<>();
     private final Set<Integer> favourites = new HashSet<>();
-    private LinearLayout root, controls, content;
-    private ScrollView scroll;
+    private LinearLayout controls, content, sidebar;
+    private ScrollView scroll, sidebarScroll;
     private LocalDate date;
     private Page page = Page.MATCHES;
     private Page returnPage = Page.MATCHES;
+    private Page settingsReturn = Page.MATCHES;
     private MatchdayFeed.Game selectedGame;
     private JSONObject details;
     private JSONArray standings;
     private String tableLeague;
     private String detailTab = "Timeline";
+    private String competitionFilter;
+    private int teamFilter;
+    private boolean upcoming = true;
+    private boolean teamSettings = true;
     private int generation, pending, failures;
-    private boolean resumedBefore;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         date = LocalDate.now();
-        root = column();
+        LinearLayout root = column();
         root.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR,
                 new int[]{0xff203850, 0xff101b2b, 0xff101827}));
         root.setPadding(dp(30), dp(17), dp(30), dp(16));
-        root.addView(label("Football", 32, INK, true));
         controls = column();
         root.addView(controls);
+        LinearLayout body = row();
+        body.setGravity(Gravity.TOP);
+        root.addView(body, new LinearLayout.LayoutParams(-1, 0, 1));
+        sidebarScroll = new ScrollView(this);
+        sidebarScroll.setFocusable(false);
+        sidebar = column();
+        sidebarScroll.addView(sidebar);
+        LinearLayout.LayoutParams sideParams = new LinearLayout.LayoutParams(dp(208), -1);
+        sideParams.setMarginEnd(dp(20));
+        body.addView(sidebarScroll, sideParams);
         scroll = new ScrollView(this);
         scroll.setFocusable(false);
         scroll.setFillViewport(false);
         content = column();
         scroll.addView(content);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        body.addView(scroll, new LinearLayout.LayoutParams(0, -1, 1));
         setContentView(root);
         showDay();
     }
 
     @Override protected void onResume() {
         super.onResume();
-        if (resumedBefore && page != Page.DETAILS) {
-            if (page == Page.TABLES) showTable(null);
-            else showDay();
-        }
-        resumedBefore = true;
         clock.postDelayed(liveTick, 60_000);
     }
 
@@ -142,16 +151,22 @@ public final class MatchdayActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (page != Page.DETAILS) {
-            super.onBackPressed();
+        if (page == Page.SETTINGS) {
+            changePage(settingsReturn);
             return;
         }
-        cancelRequests();
-        page = returnPage;
-        header();
-        renderDay();
-        View previous = content.findViewWithTag(selectedGame.id);
-        if (previous != null) previous.requestFocus();
+        if (page == Page.DETAILS) {
+            cancelRequests();
+            page = returnPage;
+            header();
+            if (page == Page.FAVOURITES) renderSchedule();
+            else renderDay();
+            View previous = content.findViewWithTag(selectedGame.id);
+            if (previous != null) previous.requestFocus();
+            return;
+        }
+        if (page != Page.MATCHES) changePage(Page.MATCHES);
+        else super.onBackPressed();
     }
 
     private void cancelRequests() {
@@ -197,6 +212,7 @@ public final class MatchdayActivity extends Activity {
         pending = enabled.size();
         if (!inPlace) {
             games.clear();
+            competitionFilter = null;
             for (String league : enabled) games.put(league, new ArrayList<>());
             header();
             renderDay();
@@ -222,6 +238,7 @@ public final class MatchdayActivity extends Activity {
                         renderDay();
                         if (inPlace) {
                             View previous = tag == null ? null : content.findViewWithTag(tag);
+                            if (previous == null && tag != null) previous = sidebar.findViewWithTag(tag);
                             if (previous != null) previous.requestFocus();
                             scroll.post(() -> scroll.scrollTo(0, position));
                         }
@@ -234,9 +251,13 @@ public final class MatchdayActivity extends Activity {
     private void header() {
         controls.removeAllViews();
         LinearLayout tabs = row();
+        tabs.setPadding(0, 0, 0, dp(9));
         controls.addView(tabs);
+        TextView title = label("Football", 32, INK, true);
+        tabs.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        sidebarScroll.setVisibility(page == Page.DETAILS ? View.GONE : View.VISIBLE);
         if (page == Page.DETAILS) {
-            button(tabs, "‹ Matches", false, this::onBackPressed);
+            button(tabs, "‹ Back", false, this::onBackPressed);
             for (String tab : new String[]{"Timeline", "Lineups", "Stats"}) {
                 button(tabs, tab, tab.equals(detailTab), () -> {
                     detailTab = tab;
@@ -249,50 +270,105 @@ public final class MatchdayActivity extends Activity {
         button(tabs, "Matches", page == Page.MATCHES, () -> changePage(Page.MATCHES));
         button(tabs, "Favourites", page == Page.FAVOURITES, () -> changePage(Page.FAVOURITES));
         button(tabs, "Tables", page == Page.TABLES, () -> changePage(Page.TABLES));
-        button(tabs, "Settings", false, this::settings);
-        if (page == Page.TABLES) {
-            LinearLayout chooser = row();
-            controls.addView(chooser);
-            button(chooser, tableLeague == null ? "Choose competition"
-                    : FootballConfig.competitionName(tableLeague) + "  ▾", false, this::chooseTable);
-        } else {
+        button(tabs, "Settings", page == Page.SETTINGS, this::settings);
+        if (page == Page.MATCHES) {
             LinearLayout days = row();
+            days.setGravity(Gravity.CENTER);
+            days.setPadding(0, 0, 0, dp(10));
             controls.addView(days);
-            button(days, "‹ Previous", false, () -> { date = date.minusDays(1); showDay(); });
-            button(days, "Today", date.equals(LocalDate.now()), () -> { date = LocalDate.now(); showDay(); });
-            button(days, "Next ›", false, () -> { date = date.plusDays(1); showDay(); });
-            button(days, "Refresh", false, this::showDay);
-            if (page == Page.FAVOURITES) {
-                button(days, "Team schedules", false,
-                        () -> startActivity(new Intent(this, TeamSchedulesActivity.class)));
+            LocalDate today = LocalDate.now();
+            LocalDate week = date.minusDays(Math.floorMod(
+                    java.time.temporal.ChronoUnit.DAYS.between(today.minusDays(2), date), 7L));
+            button(days, "‹", false, () -> moveWeek(-7)).setContentDescription("Previous week");
+            for (int i = 0; i < 7; i++) {
+                LocalDate day = week.plusDays(i);
+                String name = day.equals(today) ? "Today" : DAY.format(day);
+                button(days, name, day.equals(date), () -> selectDay(day));
             }
+            button(days, "›", false, () -> moveWeek(7)).setContentDescription("Next week");
+            if (today.isBefore(week) || today.isAfter(week.plusDays(6))) {
+                button(days, "Today", false, () -> selectDay(today));
+            }
+        } else if (page == Page.FAVOURITES) {
+            LinearLayout tabsRow = row();
+            controls.addView(tabsRow);
+            button(tabsRow, "Upcoming", upcoming, () -> scheduleMode(true));
+            button(tabsRow, "Results", !upcoming, () -> scheduleMode(false));
         }
+    }
+
+    private void moveWeek(int amount) {
+        selectDay(date.plusDays(amount));
+    }
+
+    private void selectDay(LocalDate day) {
+        if (day.equals(date)) return;
+        date = day;
+        showDay();
+        View selected = controls.findViewWithTag(day.equals(LocalDate.now()) ? "Today" : DAY.format(day));
+        if (selected != null) selected.requestFocus();
     }
 
     private void changePage(Page next) {
         if (page == next) return;
         page = next;
-        if (next == Page.TABLES) showTable(null);
-        else showDay();
+        switch (next) {
+            case TABLES: showTable(null); break;
+            case FAVOURITES: showSchedule(); break;
+            case SETTINGS: cancelRequests(); header(); renderSettings(); break;
+            default: showDay(); break;
+        }
     }
 
     private void settings() {
-        startActivity(new Intent(this, SettingsActivity.class));
+        if (page == Page.SETTINGS) return;
+        settingsReturn = page == Page.DETAILS ? returnPage : page;
+        changePage(Page.SETTINGS);
+        View tab = controls.findViewWithTag("Settings");
+        if (tab != null) tab.requestFocus();
     }
 
     private void renderDay() {
         resetContent();
-        section(date.equals(LocalDate.now()) ? "Today  ·  " + DAY.format(date) : DAY.format(date));
+        resetSidebar("Competitions");
+        int total = 0;
+        for (List<MatchdayFeed.Game> group : games.values()) total += group.size();
+        if (competitionFilter != null && (games.get(competitionFilter) == null
+                || games.get(competitionFilter).isEmpty())) competitionFilter = null;
+        heading(date.equals(LocalDate.now()) ? "Today" : DAY.format(date),
+                date.equals(LocalDate.now()) ? DAY.format(date) : "");
         if (pending > 0) {
             note("Loading matches…");
             return;
         }
+        String allTag = "competition:all";
+        sidebarAction(allTag, "All matches", String.valueOf(total), competitionFilter == null,
+                () -> filterCompetition(null, allTag));
+        for (Map.Entry<String, List<MatchdayFeed.Game>> group : games.entrySet()) {
+            if (group.getValue().isEmpty()) continue;
+            String league = group.getKey();
+            String tag = "competition:" + league;
+            sidebarAction(tag, FootballConfig.competitionName(league), String.valueOf(group.getValue().size()),
+                    league.equals(competitionFilter), () -> filterCompetition(league, tag));
+        }
+        if (total > 0 && competitionFilter == null) {
+            List<MatchdayFeed.Game> featured = new ArrayList<>();
+            for (List<MatchdayFeed.Game> group : games.values()) {
+                for (MatchdayFeed.Game game : group) if (isFavourite(game)) featured.add(game);
+            }
+            if (!featured.isEmpty()) {
+                section("Your teams");
+                featured.sort(Comparator.comparingLong(game -> game.time));
+                for (MatchdayFeed.Game game : featured) gameRow(game, true);
+            }
+        }
         boolean any = false;
         for (Map.Entry<String, List<MatchdayFeed.Game>> entry : games.entrySet()) {
+            if (competitionFilter != null && !competitionFilter.equals(entry.getKey())) continue;
             boolean heading = false;
             for (MatchdayFeed.Game game : entry.getValue()) {
-                boolean favourite = favourites.contains(game.homeId) || favourites.contains(game.awayId);
-                if (page == Page.FAVOURITES && !favourite) continue;
+                boolean favourite = isFavourite(game);
+                if (competitionFilter == null && favourite) continue;
                 if (!heading) {
                     section(FootballConfig.competitionName(entry.getKey()));
                     heading = true;
@@ -301,14 +377,115 @@ public final class MatchdayActivity extends Activity {
                 gameRow(game, favourite);
             }
         }
-        if (!any && failures == 0) {
+        if (!any && total == 0 && failures == 0) {
             note(games.isEmpty() ? "Choose competitions in Settings to see their matches."
-                    : "No matches on this date. Try Previous or Next.");
+                    : "No matches in your selected competitions on this date.");
+            contentAction("See upcoming fixtures", () -> changePage(Page.FAVOURITES));
         }
         if (failures > 0) {
-            note(failures == games.size() ? "Scores are unavailable. Select Refresh to try again."
-                    : "Some competitions are unavailable. Select Refresh to try again.");
+            note(failures == games.size() ? "Scores are unavailable." : "Some competitions are unavailable.");
+            contentAction("Try again", this::showDay);
         }
+    }
+
+    private boolean isFavourite(MatchdayFeed.Game game) {
+        return favourites.contains(game.homeId) || favourites.contains(game.awayId);
+    }
+
+    private void filterCompetition(String competition, String tag) {
+        competitionFilter = competition;
+        renderDay();
+        focusSidebar(tag);
+    }
+
+    private void scheduleMode(boolean future) {
+        if (upcoming == future) return;
+        upcoming = future;
+        showSchedule();
+    }
+
+    private void showSchedule() {
+        cancelRequests();
+        schedule.clear();
+        leagues();
+        SharedPreferences prefs = FootballConfig.preferences(this);
+        Map<FootballConfig.Team, List<String>> selected = new LinkedHashMap<>();
+        for (FootballConfig.Team team : FootballConfig.enabledTeams(prefs)) {
+            List<String> competitions = FootballConfig.enabledCompetitions(prefs, team);
+            selected.put(team, competitions);
+            pending += competitions.size();
+        }
+        if (!favourites.contains(teamFilter)) teamFilter = 0;
+        header();
+        renderSchedule();
+        final int token = generation;
+        final boolean future = upcoming;
+        for (Map.Entry<FootballConfig.Team, List<String>> entry : selected.entrySet()) {
+            int team = entry.getKey().espnId;
+            for (String competition : entry.getValue()) {
+                requests.add(feed.submit(() -> {
+                    List<MatchdayFeed.Game> result = null;
+                    try {
+                        result = MatchdayFeed.schedule(competition, team, future);
+                    } catch (Exception ignored) {}
+                    List<MatchdayFeed.Game> loaded = result;
+                    runOnUiThread(() -> {
+                        if (token != generation) return;
+                        if (loaded == null) failures++;
+                        else for (MatchdayFeed.Game game : loaded) schedule.put(game.id, game);
+                        if (--pending == 0) {
+                            View focused = getCurrentFocus();
+                            Object tag = focused == null ? null : focused.getTag();
+                            renderSchedule();
+                            if (tag instanceof String) focusSidebar((String) tag);
+                        }
+                    });
+                }));
+            }
+        }
+    }
+
+    private void renderSchedule() {
+        resetContent();
+        resetSidebar("Teams");
+        sidebarAction("team:all", "All favourites", "", teamFilter == 0, () -> filterTeam(0, "team:all"));
+        for (FootballConfig.Team team : FootballConfig.TEAMS) {
+            if (!favourites.contains(team.espnId)) continue;
+            String tag = "team:" + team.espnId;
+            sidebarAction(tag, team.name, "", teamFilter == team.espnId,
+                    () -> filterTeam(team.espnId, tag));
+        }
+        heading(upcoming ? "Upcoming fixtures" : "Recent results", "");
+        if (pending > 0) {
+            note(upcoming ? "Loading fixtures…" : "Loading results…");
+            return;
+        }
+        List<MatchdayFeed.Game> ordered = new ArrayList<>();
+        for (MatchdayFeed.Game game : schedule.values()) {
+            if (teamFilter == 0 || game.homeId == teamFilter || game.awayId == teamFilter) ordered.add(game);
+        }
+        Comparator<MatchdayFeed.Game> byTime = Comparator.comparingLong(game -> game.time);
+        ordered.sort(upcoming ? byTime : byTime.reversed());
+        LocalDate group = null;
+        for (MatchdayFeed.Game game : ordered.subList(0, Math.min(32, ordered.size()))) {
+            LocalDate day = Instant.ofEpochMilli(game.time).atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            if (!day.equals(group)) {
+                section(DAY.format(day));
+                group = day;
+            }
+            gameRow(game, true);
+        }
+        if (ordered.isEmpty()) note(upcoming ? "No upcoming fixtures found." : "No recent results found.");
+        if (failures > 0) {
+            note("Some team schedules are unavailable.");
+            contentAction("Try again", this::showSchedule);
+        }
+    }
+
+    private void filterTeam(int team, String tag) {
+        teamFilter = team;
+        renderSchedule();
+        focusSidebar(tag);
     }
 
     private void gameRow(MatchdayFeed.Game game, boolean favourite) {
@@ -322,7 +499,15 @@ public final class MatchdayActivity extends Activity {
         String statusText = gameStatus(game);
         match.setContentDescription(game.home + " vs " + game.away + ", kickoff " + kickoff(game)
                 + (statusText.isEmpty() ? "" : ", " + statusText));
-        addFixed(match, label(kickoff(game), 17, MUTED, true), 84);
+        LinearLayout timing = column();
+        timing.addView(label(kickoff(game), 17, INK, true));
+        if (page == Page.FAVOURITES || competitionFilter == null && favourite) {
+            TextView league = label(FootballConfig.competitionName(game.league), 11, MUTED, false);
+            league.setSingleLine();
+            league.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            timing.addView(league);
+        }
+        match.addView(timing, new LinearLayout.LayoutParams(dp(112), -2));
         addWeighted(match, teamMark(game.home, game.homeId, 18, 24));
         addWeighted(match, teamMark(game.away, game.awayId, 18, 24));
         TextView status = centred(statusText, 15, "in".equals(game.state) ? LIVE : INK);
@@ -330,16 +515,14 @@ public final class MatchdayActivity extends Activity {
             status.setBackground(surface(0x40101827));
             status.setPadding(dp(8), dp(4), dp(8), dp(4));
         }
-        addFixed(match, status, 120);
+        addFixed(match, status, 96);
         TextView affordance = centred(favourite ? "★   ›" : "›", 19, favourite ? ACCENT : MUTED);
-        addFixed(match, affordance, 50);
+        addFixed(match, affordance, 36);
         addCard(content, match);
     }
 
     private String gameStatus(MatchdayFeed.Game game) {
-        if ("pre".equals(game.state)) {
-            return "Scheduled".equalsIgnoreCase(game.status) ? "" : game.status;
-        }
+        if ("pre".equals(game.state)) return game.status;
         String status = "in".equals(game.state) && game.status.isEmpty() ? "LIVE" : game.status;
         return game.score.isEmpty() ? status : game.score + (status.isEmpty() ? "" : "  ·  " + status);
     }
@@ -494,15 +677,6 @@ public final class MatchdayActivity extends Activity {
         }
     }
 
-    private void chooseTable() {
-        List<String> enabled = leagues();
-        if (enabled.isEmpty()) { settings(); return; }
-        String[] names = new String[enabled.size()];
-        for (int i = 0; i < names.length; i++) names[i] = FootballConfig.competitionName(enabled.get(i));
-        new android.app.AlertDialog.Builder(this).setTitle("League tables")
-                .setItems(names, (dialog, which) -> showTable(enabled.get(which))).show();
-    }
-
     private void showTable(String league) {
         cancelRequests();
         List<String> enabled = leagues();
@@ -513,6 +687,7 @@ public final class MatchdayActivity extends Activity {
         header();
         renderTable();
         if (tableLeague == null) return;
+        if (league != null) focusSidebar("table:" + league);
         final int token = generation;
         final String requested = tableLeague;
         requests.add(feed.submit(() -> {
@@ -523,21 +698,145 @@ public final class MatchdayActivity extends Activity {
                 if (token != generation) return;
                 standings = loaded;
                 pending = 0;
+                View focused = getCurrentFocus();
+                Object tag = focused == null ? null : focused.getTag();
                 renderTable();
+                if (tag instanceof String) focusSidebar((String) tag);
             });
         }));
     }
 
     private void renderTable() {
         resetContent();
+        resetSidebar("Competitions");
+        SharedPreferences prefs = FootballConfig.preferences(this);
+        for (FootballConfig.Competition league : FootballConfig.COMPETITIONS) {
+            if (FootballConfig.isCompetitionEnabled(prefs, league)) {
+                sidebarAction("table:" + league.slug, league.name, "", league.slug.equals(tableLeague),
+                        () -> showTable(league.slug));
+            }
+        }
+        heading(tableLeague == null ? "League tables" : FootballConfig.competitionName(tableLeague), "");
         if (pending > 0) { note("Loading table…"); return; }
         if (standings == null || standings.length() == 0) {
             note(tableLeague == null ? "Choose competitions in Settings." : "No table available for this competition.");
             return;
         }
+        int before = content.getChildCount();
         for (int i = 0; i < standings.length(); i++) drawGroup(standings.optJSONObject(i));
-        if (content.getChildCount() == 0) note("No table available for this competition.");
+        if (content.getChildCount() == before) note("No table available for this competition.");
         allowScrollFocus();
+    }
+
+    private void renderSettings() {
+        resetContent();
+        resetSidebar("Settings");
+        sidebarAction("settings:teams", "Favourite teams", "", teamSettings, () -> settingGroup(true));
+        sidebarAction("settings:leagues", "Competitions", "", !teamSettings, () -> settingGroup(false));
+        SharedPreferences prefs = FootballConfig.preferences(this);
+        if (teamSettings) {
+            heading("Favourite teams", "These teams appear first on matchday and in Favourites.");
+            int selected = FootballConfig.enabledTeams(prefs).size();
+            for (FootballConfig.Team team : FootballConfig.TEAMS) {
+                boolean enabled = FootballConfig.isTeamEnabled(prefs, team);
+                String key = "team_" + team.key;
+                preferenceRow(key, team.name, team.espnId, enabled,
+                        () -> togglePreference(key, enabled, selected, "Keep at least one favourite team."));
+            }
+            return;
+        }
+        heading("Competitions", "Choose which competitions appear in Matches and Tables.");
+        int count = 0;
+        Map<String, List<FootballConfig.Competition>> regions = new LinkedHashMap<>();
+        for (FootballConfig.Competition competition : FootballConfig.COMPETITIONS) {
+            if (FootballConfig.isCompetitionEnabled(prefs, competition)) count++;
+            regions.computeIfAbsent(competition.region, key -> new ArrayList<>()).add(competition);
+        }
+        final int selected = count;
+        for (Map.Entry<String, List<FootballConfig.Competition>> region : regions.entrySet()) {
+            section(region.getKey());
+            for (FootballConfig.Competition competition : region.getValue()) {
+                boolean enabled = FootballConfig.isCompetitionEnabled(prefs, competition);
+                String key = "competition_" + competition.slug;
+                preferenceRow(key, competition.name, 0, enabled,
+                        () -> togglePreference(key, enabled, selected, "Keep at least one competition."));
+            }
+        }
+    }
+
+    private void settingGroup(boolean teams) {
+        if (teamSettings != teams) {
+            teamSettings = teams;
+            renderSettings();
+        }
+        focusSidebar(teams ? "settings:teams" : "settings:leagues");
+    }
+
+    private void preferenceRow(String key, String title, int crest, boolean enabled, Runnable change) {
+        LinearLayout item = cardRow();
+        item.setTag(key);
+        item.setBackground(focusSurface(SURFACE));
+        item.setMinimumHeight(dp(53));
+        item.setFocusable(true);
+        item.setContentDescription(title + (enabled ? ", on" : ", off"));
+        item.setOnClickListener(view -> change.run());
+        if (crest > 0) addWeighted(item, teamMark(title, crest, 19, 28));
+        else addWeighted(item, label(title, 18, INK, true));
+        TextView value = centred(enabled ? "✓  On" : "Off", 15, enabled ? ACCENT : MUTED);
+        value.setPadding(dp(7), dp(5), dp(7), dp(5));
+        value.setBackground(surface(enabled ? SELECTED : 0x40101827));
+        addFixed(item, value, 78);
+        addCard(content, item);
+    }
+
+    private void togglePreference(String key, boolean enabled, int selected, String warning) {
+        if (enabled && selected <= 1) {
+            android.widget.Toast.makeText(this, warning, android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FootballConfig.preferences(this).edit().putBoolean(key, !enabled).apply();
+        renderSettings();
+        View item = content.findViewWithTag(key);
+        if (item != null) item.requestFocus();
+    }
+
+    private void resetSidebar(String title) {
+        sidebar.removeAllViews();
+        sidebarScroll.scrollTo(0, 0);
+        TextView heading = label(title, 16, MUTED, true);
+        heading.setPadding(dp(12), dp(6), 0, dp(10));
+        sidebar.addView(heading);
+    }
+
+    private void sidebarAction(String tag, String title, String value, boolean selected, Runnable action) {
+        LinearLayout item = row();
+        item.setTag(tag);
+        item.setPadding(dp(12), dp(5), dp(12), dp(5));
+        item.setMinimumHeight(dp(45));
+        item.setBackground(focusSurface(selected ? SELECTED : Color.TRANSPARENT));
+        item.setFocusable(true);
+        item.setOnClickListener(view -> action.run());
+        addWeighted(item, label(title, 16, selected ? ACCENT : INK, true));
+        if (!value.isEmpty()) item.addView(label(value, 14, MUTED, false));
+        addCard(sidebar, item);
+    }
+
+    private void focusSidebar(String tag) {
+        View item = sidebar.findViewWithTag(tag);
+        if (item != null) item.requestFocus();
+    }
+
+    private void heading(String title, String subtitle) {
+        TextView heading = label(title, 28, INK, true);
+        heading.setPadding(0, dp(3), 0, dp(3));
+        content.addView(heading);
+        if (!subtitle.isEmpty()) note(subtitle);
+    }
+
+    private void contentAction(String title, Runnable action) {
+        LinearLayout actions = row();
+        content.addView(actions);
+        button(actions, title, false, action);
     }
 
     private void drawGroup(JSONObject group) {
@@ -664,7 +963,7 @@ public final class MatchdayActivity extends Activity {
         content.addView(text);
     }
 
-    private void button(LinearLayout parent, String title, boolean active, Runnable action) {
+    private TextView button(LinearLayout parent, String title, boolean active, Runnable action) {
         TextView button = centred(title, 15, active ? ACCENT : INK);
         button.setTag(title);
         button.setFocusable(true);
@@ -679,6 +978,7 @@ public final class MatchdayActivity extends Activity {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, -2);
         params.setMargins(0, dp(5), dp(8), dp(4));
         parent.addView(button, params);
+        return button;
     }
 
     private void addCard(LinearLayout parent, View view) {

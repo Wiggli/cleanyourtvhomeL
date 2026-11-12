@@ -23,11 +23,13 @@
   "dock_glass": true,
   "gozo_inline_weather": true,
   "module_cards": true,
-  "sky_intensity": 60,
+  "sky_intensity": 0,
+  "launcher_settings_button": true,
   "wallpaper_rotation_minutes": 1,
   "home_idle_clock_minutes": 10,
   "clock_wallpaper": true,
   "wallpaper_order": "sequential",
-  "wallpaper_dim": 35,
+  "wallpaper_dim": 20,
+  "clock_wallpaper_dim": 25,
   "wallpaper_captions": true
 }

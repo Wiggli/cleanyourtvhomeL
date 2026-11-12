@@ -8,18 +8,8 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:backgroundDimEnabled">false</item>
         <item name="android:windowDisablePreview">true</item>
-        <item name="android:colorAccent">#DA291C</item>
+        <item name="android:colorAccent">#86D8FF</item>
         <item name="android:navigationBarColor">#07111F</item>
         <item name="android:statusBarColor">#07111F</item>
-    </style>
-
-    <style name="Theme.GozoFootball.Settings" parent="android:style/Theme.Material.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:windowBackground">#0B0E16</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:colorAccent">#DA291C</item>
-        <item name="android:navigationBarColor">#0B0E16</item>
-        <item name="android:statusBarColor">#0B0E16</item>
     </style>
 </resources>

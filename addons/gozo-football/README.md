@@ -6,13 +6,13 @@ Installing this add-on is optional and it should only be installed on the Luqa G
 
 ## What it shows
 
-- Matches opens on the current local day, groups scores by competition and offers Previous, Today and Next.
+- Matches opens on the current local day, puts followed teams first and shows every competition with games in a filter rail.
 - Use the directional pad to highlight a match and OK to open its timeline, lineups and team stats. Back returns to the selected match.
-- Favourites filters the day to selected teams. Team schedules opens their longer fixture and results lists.
+- Favourites shows upcoming fixtures and recent results for all followed teams or for a single team.
 - Tables shows standings for the selected competition where ESPN supplies them.
-- Settings controls which teams and competitions are shown. The Gozo Home widget still shows the next selected fixture.
+- Settings groups followed teams and competitions in the same interface. Changes are saved immediately. The Gozo Home widget still shows the next selected fixture.
 
-The app queries ESPN's public, undocumented football feeds and team crest CDN. Today's scores refresh once a minute while the match list is open and a fixture is live or about to start. Lineups, events, stats and tables depend on competition and match coverage. The separate team schedules retain their existing 15-minute cache. The ESPN interfaces can change without notice.
+The app queries ESPN's public, undocumented football feeds and team crest CDN. Today's scores refresh once a minute while the match list is open and a fixture is live or about to start. Lineups, events, stats and tables depend on competition and match coverage. The ESPN interfaces can change without notice.
 
 No ads, analytics, telemetry, accounts or background service are included.
 

@@ -64,6 +64,33 @@ final class MatchdayFeed {
         return read(SITE + game.league + "/summary?event=" + game.id);
     }
 
+    static List<Game> schedule(String league, int teamId, boolean upcoming) throws Exception {
+        JSONObject result = read(SITE + league + "/teams/" + teamId + "/schedule"
+                + (upcoming ? "?fixture=true" : ""));
+        JSONArray events = array(result, "events");
+        List<Game> games = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        long day = 86_400_000L;
+        for (int i = 0; i < events.length(); i++) {
+            JSONObject event = events.optJSONObject(i);
+            if (event == null) continue;
+            try {
+                long kickoff = FootballConfig.parseKickoffMillis(event.optString("date"));
+                if (upcoming && (kickoff < now - 3 * 3_600_000L || kickoff > now + 90 * day)) continue;
+                if (!upcoming && (kickoff < now - 45 * day || kickoff > now)) continue;
+                String id = event.optString("id");
+                if (!id.matches("[0-9]+")) continue;
+                Game game = fromCompetition(league, id, kickoff,
+                        array(event, "competitions").optJSONObject(0));
+                if (game != null && (game.homeId == teamId || game.awayId == teamId)
+                        && (upcoming != "post".equals(game.state))) games.add(game);
+            } catch (java.time.DateTimeException ignored) {
+                // A fixture without a usable date cannot be placed on the schedule.
+            }
+        }
+        return games;
+    }
+
     static Game updatedGame(Game previous, JSONObject details) {
         JSONObject competition = array(child(details, "header"), "competitions").optJSONObject(0);
         Game fresh = fromCompetition(previous.league, previous.id, previous.time, competition);
@@ -148,12 +175,23 @@ final class MatchdayFeed {
             homeId = homeTeam.optInt("id");
             awayId = awayTeam.optInt("id");
             state = status.optString("state", "pre");
-            this.status = status.optString("shortDetail");
-            kickoffTbd = "STATUS_TBD".equals(status.optString("name"))
-                    || "TBD".equalsIgnoreCase(this.status);
+            String statusName = status.optString("name");
+            String shortDetail = status.optString("shortDetail");
+            kickoffTbd = "STATUS_TBD".equals(statusName) || "TBD".equalsIgnoreCase(shortDetail);
+            this.status = "pre".equals(state) ? preMatchStatus(statusName) : shortDetail;
             String homeScore = score(home);
             String awayScore = score(away);
             score = homeScore.isEmpty() || awayScore.isEmpty() ? "" : homeScore + "  –  " + awayScore;
+        }
+
+        private static String preMatchStatus(String name) {
+            switch (name) {
+                case "STATUS_POSTPONED": return "Postponed";
+                case "STATUS_CANCELED": return "Cancelled";
+                case "STATUS_DELAYED": return "Delayed";
+                case "STATUS_SUSPENDED": return "Suspended";
+                default: return "";
+            }
         }
     }
 }

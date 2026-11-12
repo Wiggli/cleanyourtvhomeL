@@ -52,6 +52,11 @@ final class GozoWeather {
     void stop() {
     }
 
+    void positionForScroll(int shift, float alpha) {
+        card.setTranslationY(-shift);
+        card.setAlpha(alpha);
+    }
+
     private void refresh() {
         if (inFlight || lastSuccess > 0 && System.currentTimeMillis() - lastSuccess < CACHE_MS) return;
         inFlight = true;

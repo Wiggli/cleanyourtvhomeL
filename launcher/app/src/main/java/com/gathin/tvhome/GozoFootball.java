@@ -33,6 +33,11 @@ final class GozoFootball {
         refresh();
     }
 
+    void positionForScroll(int shift, float alpha) {
+        card.setTranslationY(-shift);
+        card.setAlpha(alpha);
+    }
+
     private void refresh() {
         new Thread(() -> {
             String[] value = read();
