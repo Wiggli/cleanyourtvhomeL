@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,6 +65,46 @@ final class MatchdayFeed {
         return read(SITE + game.league + "/summary?event=" + game.id);
     }
 
+    static List<FootballConfig.Team> searchTeams(String query) throws Exception {
+        String encoded = URLEncoder.encode(query, "UTF-8");
+        JSONArray groups = array(read("https://site.api.espn.com/apis/search/v2?type=team&sport=soccer"
+                + "&limit=24&query=" + encoded), "results");
+        Map<Integer, FootballConfig.Team> teams = new LinkedHashMap<>();
+        for (int i = 0; i < groups.length(); i++) {
+            JSONObject group = groups.optJSONObject(i);
+            if (!"team".equals(object(group, "type"))) continue;
+            JSONArray results = array(group, "contents");
+            for (int j = 0; j < results.length(); j++) {
+                JSONObject item = results.optJSONObject(j);
+                if (item == null || !"soccer".equals(item.optString("sport"))) continue;
+                String uid = item.optString("uid");
+                String prefix = "s:600~t:";
+                if (!uid.startsWith(prefix)) continue;
+                int id;
+                try {
+                    id = Integer.parseInt(uid.substring(prefix.length()));
+                } catch (NumberFormatException ignored) {
+                    continue;
+                }
+                String name = item.optString("displayName").trim();
+                if (id > 0 && !name.isEmpty()) teams.putIfAbsent(id, new FootballConfig.Team(
+                        id, name, item.optString("subtitle"), item.optString("defaultLeagueSlug")));
+            }
+        }
+        return new ArrayList<>(teams.values());
+    }
+
+    static String eventLeague(JSONObject event, String requested) {
+        if (!"all".equals(requested)) return requested;
+        String slug = child(event, "league").optString("slug");
+        return FootballConfig.validLeague(slug) ? slug : "";
+    }
+
+    static String leagueLabel(JSONObject event, String league) {
+        String known = FootballConfig.competitionName(league);
+        return known.equals(league) ? child(event, "league").optString("name", league) : known;
+    }
+
     static List<Game> schedule(String league, int teamId, boolean upcoming) throws Exception {
         JSONObject result = read(SITE + league + "/teams/" + teamId + "/schedule"
                 + (upcoming ? "?fixture=true" : ""));
@@ -80,10 +121,15 @@ final class MatchdayFeed {
                 if (!upcoming && (kickoff < now - 45 * day || kickoff > now)) continue;
                 String id = event.optString("id");
                 if (!id.matches("[0-9]+")) continue;
-                Game game = fromCompetition(league, id, kickoff,
+                String actualLeague = eventLeague(event, league);
+                if (actualLeague.isEmpty()) continue;
+                Game game = fromCompetition(actualLeague, id, kickoff,
                         array(event, "competitions").optJSONObject(0));
                 if (game != null && (game.homeId == teamId || game.awayId == teamId)
-                        && (upcoming != "post".equals(game.state))) games.add(game);
+                        && (upcoming != "post".equals(game.state))) {
+                    game.leagueLabel = leagueLabel(event, actualLeague);
+                    games.add(game);
+                }
             } catch (java.time.DateTimeException ignored) {
                 // A fixture without a usable date cannot be placed on the schedule.
             }
@@ -94,6 +140,7 @@ final class MatchdayFeed {
     static Game updatedGame(Game previous, JSONObject details) {
         JSONObject competition = array(child(details, "header"), "competitions").optJSONObject(0);
         Game fresh = fromCompetition(previous.league, previous.id, previous.time, competition);
+        if (fresh != null) fresh.leagueLabel = previous.leagueLabel;
         return fresh == null ? previous : fresh;
     }
 
@@ -159,13 +206,15 @@ final class MatchdayFeed {
     }
 
     static final class Game {
-        final String league, id, home, away, state, status, score;
+        final String league, id, home, away, state, status, score, homeScore, awayScore;
+        String leagueLabel;
         final int homeId, awayId;
         final long time;
         final boolean kickoffTbd;
 
         Game(String league, String id, long time, JSONObject home, JSONObject away, JSONObject status) {
             this.league = league;
+            leagueLabel = FootballConfig.competitionName(league);
             this.id = id;
             this.time = time;
             JSONObject homeTeam = child(home, "team");
@@ -179,8 +228,8 @@ final class MatchdayFeed {
             String shortDetail = status.optString("shortDetail");
             kickoffTbd = "STATUS_TBD".equals(statusName) || "TBD".equalsIgnoreCase(shortDetail);
             this.status = "pre".equals(state) ? preMatchStatus(statusName) : shortDetail;
-            String homeScore = score(home);
-            String awayScore = score(away);
+            homeScore = score(home);
+            awayScore = score(away);
             score = homeScore.isEmpty() || awayScore.isEmpty() ? "" : homeScore + "  –  " + awayScore;
         }
 

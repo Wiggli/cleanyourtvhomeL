@@ -78,7 +78,7 @@ public final class FootballProvider extends ContentProvider {
         List<Future<Candidate>> futures = new ArrayList<>();
         for (FootballConfig.Team team : FootballConfig.enabledTeams(preferences)) {
             for (String competition : FootballConfig.enabledCompetitions(preferences, team)) {
-                futures.add(pool.submit(() -> fetch(team, competition)));
+                futures.add(pool.submit(() -> fetch(team, competition, preferences)));
             }
         }
         Candidate best = null;
@@ -96,7 +96,7 @@ public final class FootballProvider extends ContentProvider {
         return best;
     }
 
-    private Candidate fetch(FootballConfig.Team team, String competitionSlug) {
+    private Candidate fetch(FootballConfig.Team team, String competitionSlug, SharedPreferences preferences) {
         HttpURLConnection connection = null;
         try {
             URL url = new URL("https://site.api.espn.com/apis/site/v2/sports/soccer/"
@@ -117,7 +117,10 @@ public final class FootballProvider extends ContentProvider {
             Candidate best = null;
             long earliest = System.currentTimeMillis() - 3L * 60L * 60L * 1000L;
             for (int i = 0; i < events.length(); i++) {
-                Candidate candidate = parse(events.optJSONObject(i), team, competitionSlug);
+                JSONObject event = events.optJSONObject(i);
+                String league = MatchdayFeed.eventLeague(event, competitionSlug);
+                if (league.isEmpty() || !FootballConfig.isCompetitionEnabled(preferences, league)) continue;
+                Candidate candidate = parse(event, team, league);
                 if (candidate == null || "post".equals(candidate.state) || candidate.kickoff < earliest) continue;
                 if (best == null || candidate.isLive() && !best.isLive()
                         || candidate.isLive() == best.isLive() && candidate.kickoff < best.kickoff) {
@@ -164,7 +167,7 @@ public final class FootballProvider extends ContentProvider {
                 }
             }
             return !foundTeam || opponent == null ? null : new Candidate(selected.name, selected.shortName, opponent,
-                    FootballConfig.competitionName(competitionSlug), state, statusText, kickoff, home,
+                    MatchdayFeed.leagueLabel(event, competitionSlug), state, statusText, kickoff, home,
                     ourScore, theirScore);
         } catch (Exception ignored) {
             return null;
