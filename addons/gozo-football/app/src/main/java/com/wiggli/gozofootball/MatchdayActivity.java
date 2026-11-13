@@ -383,8 +383,9 @@ public final class MatchdayActivity extends Activity {
         for (List<MatchdayFeed.Game> group : games.values()) total += group.size();
         if (competitionFilter != null && (games.get(competitionFilter) == null
                 || games.get(competitionFilter).isEmpty())) competitionFilter = null;
-        heading(date.equals(LocalDate.now()) ? "Today" : DAY.format(date),
-                date.equals(LocalDate.now()) ? DAY.format(date) : "");
+        String dateLabel = date.equals(LocalDate.now()) ? "Today · " + DAY.format(date) : DAY.format(date);
+        if (competitionFilter == null) heading(dateLabel, "");
+        else heading(leagueName(competitionFilter), dateLabel);
         if (pending > 0) {
             note("Loading matches…");
             return;
@@ -417,7 +418,7 @@ public final class MatchdayActivity extends Activity {
             for (MatchdayFeed.Game game : entry.getValue()) {
                 boolean favourite = isFavourite(game);
                 if (competitionFilter == null && favourite) continue;
-                if (!heading) {
+                if (!heading && competitionFilter == null) {
                     section(leagueName(entry.getKey()));
                     heading = true;
                 }
@@ -506,7 +507,9 @@ public final class MatchdayActivity extends Activity {
                     () -> filterTeam(team.espnId, tag));
         }
         sidebarAction("team:add", "＋ Add a team", "", false, this::openTeamSearch);
-        heading(upcoming ? "Upcoming fixtures" : "Recent results", "");
+        FootballConfig.Team team = FootballConfig.findTeam(FootballConfig.preferences(this), teamFilter);
+        String mode = upcoming ? "Upcoming fixtures" : "Recent results";
+        heading(team == null ? mode : team.label(), team == null ? "All favourites" : mode);
         if (pending > 0) {
             note(upcoming ? "Loading fixtures…" : "Loading results…");
             return;
@@ -542,42 +545,45 @@ public final class MatchdayActivity extends Activity {
     private void gameRow(MatchdayFeed.Game game, boolean favourite) {
         LinearLayout match = row();
         match.setTag(game.id);
-        match.setPadding(dp(16), dp(7), dp(16), dp(7));
-        match.setMinimumHeight(dp(62));
+        match.setPadding(dp(18), dp(9), dp(16), dp(9));
+        match.setMinimumHeight(dp(77));
         match.setBackground(focusSurface(SURFACE));
         match.setFocusable(true);
         match.setOnClickListener(view -> openGame(game));
         String statusText = gameStatus(game);
-        match.setContentDescription(game.home + " vs " + game.away + ", kickoff " + kickoff(game)
+        match.setContentDescription(leagueName(game) + ", " + game.home + " vs " + game.away + ", kickoff " + kickoff(game)
                 + (statusText.isEmpty() ? "" : ", " + statusText));
         LinearLayout timing = column();
-        timing.addView(label(kickoff(game), 17, INK, true));
-        if (page == Page.FAVOURITES || competitionFilter == null && favourite) {
-            TextView league = label(leagueName(game), 12, MUTED, false);
-            league.setSingleLine();
+        timing.addView(label(kickoff(game), 19, INK, true));
+        if (page == Page.FAVOURITES || (competitionFilter == null && favourite)) {
+            TextView league = label(leagueName(game), 14, MUTED, false);
+            league.setMaxLines(2);
             league.setEllipsize(android.text.TextUtils.TruncateAt.END);
             timing.addView(league);
         }
-        match.addView(timing, new LinearLayout.LayoutParams(dp(126), -2));
+        match.addView(timing, new LinearLayout.LayoutParams(dp(155), -2));
         LinearLayout teams = column();
         addWeighted(match, teams);
         boolean hasScore = !"pre".equals(game.state);
         boolean live = "in".equals(game.state);
         scoreTeam(teams, game.home, game.homeId, hasScore ? game.homeScore : "", live);
         scoreTeam(teams, game.away, game.awayId, hasScore ? game.awayScore : "", live);
-        String phase = live && game.status.isEmpty() ? "Live" : game.status;
-        TextView status = centred(phase, 14, live ? LIVE : MUTED);
-        addFixed(match, status, 80);
-        TextView affordance = centred(favourite ? "★   ›" : "›", 19, favourite ? ACCENT : MUTED);
-        addFixed(match, affordance, 36);
+        String phase = game.status;
+        if (live && phase.isEmpty()) phase = "Live";
+        if ("post".equals(game.state) && (phase.isEmpty() || "FT".equals(phase))) phase = "Full time";
+        if (!hasScore && phase.isEmpty()) phase = "Kickoff";
+        TextView status = centred(phase, 15, live ? LIVE : MUTED);
+        addFixed(match, status, 98);
+        TextView affordance = centred(favourite && page == Page.MATCHES ? "★" : "›", 19, favourite ? ACCENT : MUTED);
+        addFixed(match, affordance, 28);
         addCard(content, match);
     }
 
     private void scoreTeam(LinearLayout teams, String name, int id, String score, boolean live) {
         LinearLayout line = row();
-        line.setMinimumHeight(dp(25));
-        addWeighted(line, teamMark(name, id, 17, 20));
-        addFixed(line, centred(score, 18, live ? LIVE : INK), 42);
+        line.setMinimumHeight(dp(29));
+        addWeighted(line, teamMark(name, id, 19, 23));
+        addFixed(line, centred(score, 21, live ? LIVE : INK), 42);
         teams.addView(line);
     }
 

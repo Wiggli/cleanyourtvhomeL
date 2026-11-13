@@ -58,6 +58,8 @@ final class Forecast {
         /** The WMO code, rain turned into snow where the air is cold enough for it (see {@link #snowIfCold}). */
         final int code;
         final boolean day;
+        final double todayHighC;
+        final double todayLowC;
         /** The next days, tomorrow first. */
         final List<Day> days;
         /** US AQI, or -1 when the air quality read failed. */
@@ -65,11 +67,14 @@ final class Forecast {
         final int humidity;
         final int windKmh;
 
-        Report(double tempC, double feelsC, int code, boolean day, List<Day> days, int aqi, int humidity, int windKmh) {
+        Report(double tempC, double feelsC, int code, boolean day, double todayHighC, double todayLowC,
+               List<Day> days, int aqi, int humidity, int windKmh) {
             this.tempC = tempC;
             this.feelsC = feelsC;
             this.code = code;
             this.day = day;
+            this.todayHighC = todayHighC;
+            this.todayLowC = todayLowC;
             this.days = days;
             this.aqi = aqi;
             this.humidity = humidity;
@@ -130,9 +135,12 @@ final class Forecast {
         double temp = current.getDouble("temperature_2m");
         double humidity = current.getDouble("relative_humidity_2m");
         int code = snowIfCold(current.getInt("weather_code"), temp, humidity);
+        JSONObject daily = reply.getJSONObject("daily");
         return new Report(temp, current.getDouble("apparent_temperature"),
                 code, current.getInt("is_day") == 1,
-                days(reply.getJSONObject("daily")), aqiOrUnknown(where),
+                daily.getJSONArray("temperature_2m_max").optDouble(0),
+                daily.getJSONArray("temperature_2m_min").optDouble(0),
+                days(daily), aqiOrUnknown(where),
                 (int) Math.round(humidity), (int) Math.round(current.optDouble("wind_speed_10m", 0)));
     }
 

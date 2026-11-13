@@ -144,6 +144,13 @@ public final class WeatherActivity extends Activity {
                     : getString(R.string.wind, r.windKmh));
         }
         ((TextView) findViewById(R.id.feels)).setText(feels);
+        TextView todayRange = findViewById(R.id.todayRange);
+        boolean hasTodayRange = Double.isFinite(r.todayHighC) && Double.isFinite(r.todayLowC);
+        todayRange.setVisibility(hasTodayRange ? View.VISIBLE : View.GONE);
+        if (hasTodayRange) {
+            todayRange.setText(getString(R.string.forecast_today_range, Forecast.degrees(r.todayHighC, fahrenheit),
+                    Forecast.degrees(r.todayLowC, fahrenheit)));
+        }
 
         TextView air = findViewById(R.id.airQuality);
         if (r.aqi >= 0) {
@@ -172,9 +179,10 @@ public final class WeatherActivity extends Activity {
             ((TextView) card.findViewById(R.id.dayName)).setText(d.date.getDayOfWeek()
                     .getDisplayName(compact ? TextStyle.SHORT : TextStyle.FULL, Locale.getDefault()));
             ((TextView) card.findViewById(R.id.daySky)).setText(Forecast.sky(d.code, true));
-            TextView temps = card.findViewById(R.id.dayTemps);
-            temps.setText(getString(R.string.high_low, Forecast.degrees(d.maxC, fahrenheit),
-                    Forecast.degrees(d.minC, fahrenheit)));
+            TextView high = card.findViewById(R.id.dayHigh);
+            TextView low = card.findViewById(R.id.dayLow);
+            high.setText(getString(R.string.forecast_high, Forecast.degrees(d.maxC, fahrenheit)));
+            low.setText(getString(R.string.forecast_low, Forecast.degrees(d.minC, fahrenheit)));
             if (compact) {
                 int pad = Math.round(14 * getResources().getDisplayMetrics().density);
                 card.setPadding(pad, pad, pad, pad);
@@ -182,7 +190,8 @@ public final class WeatherActivity extends Activity {
                 sky.setTextSize(15);
                 sky.setSingleLine(false);   // "Partly cloudy" on two lines rather than cut; every card two lines tall
                 sky.setLines(2);
-                temps.setTextSize(21);
+                high.setTextSize(18);
+                low.setTextSize(17);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
                 lp.setMarginEnd(i < count - 1 ? Math.round(12 * getResources().getDisplayMetrics().density) : 0);
                 card.setLayoutParams(lp);

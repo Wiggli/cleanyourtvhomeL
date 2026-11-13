@@ -131,32 +131,37 @@ final class GozoWeather {
             float scale = getWidth() / 580f;
             canvas.save();
             canvas.scale(scale, scale);
-            round(canvas, 0, 0, 580, 198, 34, Color.argb(222, 10, 21, 34));
+            paint.setShader(new android.graphics.LinearGradient(0, 0, 580, 198,
+                    0xf3264564, 0xf30e1c31, android.graphics.Shader.TileMode.CLAMP));
+            round(canvas, 0, 0, 580, 198, 34, Color.WHITE);
+            paint.setShader(null);
             stroke(canvas, 0, 0, 580, 198, 34, Color.argb(70, 255, 255, 255), 2);
-            text(canvas, "GOZO", 26, 34, 19, 0xff72d7ff, true);
-            text(canvas, "Weather", 26, 60, 18, 0xffc9d4df, false);
+            text(canvas, "Gozo", 26, 40, 27, Color.WHITE, true);
             if (forecast == null) {
                 text(canvas, "Updating forecast…", 26, 126, 24, Color.WHITE, false);
                 canvas.restore();
                 return;
             }
 
-            drawWeatherIcon(canvas, 72, 119, 28, forecast.currentCode);
-            text(canvas, forecast.current + "°", 116, 139, 54, Color.WHITE, true);
-            text(canvas, weatherLabel(forecast.currentCode), 28, 178, 17, 0xffaebdca, false);
+            drawWeatherIcon(canvas, 150, 75, 29, forecast.currentCode);
+            text(canvas, forecast.current + "°", 24, 108, 64, Color.WHITE, false);
+            text(canvas, weatherLabel(forecast.currentCode), 26, 139, 22, 0xffeef6ff, false);
+            if (forecast.days.length > 0) {
+                text(canvas, "H " + forecast.high[0] + "°", 26, 173, 23, Color.WHITE, true);
+                text(canvas, "L " + forecast.low[0] + "°", 106, 173, 23, 0xffc3dfff, true);
+            }
 
-            float start = 250;
+            paint.setColor(0x50ffffff);
+            paint.setStrokeWidth(1);
+            canvas.drawLine(216, 24, 216, 174, paint);
+            text(canvas, "High", 230, 128, 20, Color.WHITE, false);
+            text(canvas, "Low", 230, 166, 20, 0xffc3dfff, false);
             for (int i = 1; i < forecast.days.length; i++) {
-                float x = start + (i - 1) * 102;
-                if (i > 1) {
-                    paint.setColor(0x28ffffff);
-                    paint.setStrokeWidth(1);
-                    canvas.drawLine(x - 14, 42, x - 14, 166, paint);
-                }
-                textCenter(canvas, forecast.days[i], x + 26, 51, 16, 0xffb9c7d3, true);
-                drawWeatherIcon(canvas, x + 26, 92, 18, forecast.codes[i]);
-                textCenter(canvas, forecast.high[i] + "°", x + 26, 137, 22, Color.WHITE, true);
-                textCenter(canvas, forecast.low[i] + "°", x + 26, 166, 17, 0xff8fa2b3, false);
+                float x = 329 + (i - 1) * 90;
+                textCenter(canvas, forecast.days[i], x, 43, 24, 0xffeef6ff, true);
+                drawWeatherIcon(canvas, x, 76, 21, forecast.codes[i]);
+                textCenter(canvas, forecast.high[i] + "°", x, 129, 29, Color.WHITE, true);
+                textCenter(canvas, forecast.low[i] + "°", x, 168, 26, 0xffc3dfff, false);
             }
             canvas.restore();
         }
@@ -187,7 +192,7 @@ final class GozoWeather {
         }
 
         private static String weatherLabel(int code) {
-            if (code <= 1) return "Clear in Gozo";
+            if (code <= 1) return "Clear";
             if (code <= 3) return "Partly cloudy";
             if (code < 51) return "Low cloud";
             if (code < 80) return "Rain nearby";

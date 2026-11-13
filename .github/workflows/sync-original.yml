@@ -46,6 +46,10 @@ jobs:
 
           common=$(git merge-base origin/main upstream/main)
           launcher_patch="$RUNNER_TEMP/luqa-launcher.patch"
+          companion_patch="$RUNNER_TEMP/luqa-companion.patch"
+          git diff --binary "$common" origin/main -- addons/weather docs/launcher.md tests/test_settings_menu_docs.py \
+            .github/workflows/ci.yml CONTRIBUTING.md docs/workflows/translation.md \
+            tests/test_contributing_build_from_source.py tests/test_translation_recipe_gate.py > "$companion_patch"
           git diff --binary "$common" origin/main -- \
             launcher/app/src/main/AndroidManifest.xml \
             launcher/app/src/main/java/com/gathin/tvhome/Config.java \
@@ -63,7 +67,7 @@ jobs:
           fi
           while IFS= read -r changed_path; do
             case "$changed_path" in
-              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|addons/gozo-football/*|addons/README.md|tools/luqa-update.sh|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/Config.java|launcher/app/src/main/java/com/gathin/tvhome/GozoFootball.java|launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|.github/sync-heartbeat|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
+              boxes/*|fork/luqa-launcher-updater/*|themes/family-gozo/*|themes/README.md|themes/CREATE_A_THEME.md|addons/gozo-football/*|addons/weather/*|addons/README.md|tools/luqa-update.sh|README.md|README.de.md|README.nl.md|README.pt-BR.md|README.tr.md|README.uk.md|AGENTS.md|launcher/app/src/main/AndroidManifest.xml|launcher/app/src/main/java/com/gathin/tvhome/Config.java|launcher/app/src/main/java/com/gathin/tvhome/GozoFootball.java|launcher/app/src/main/java/com/gathin/tvhome/GozoWeather.java|launcher/app/src/main/java/com/gathin/tvhome/MainActivity.java|docs/launcher.md|docs/workflows/theme.md|docs/workflows/translation.md|CONTRIBUTING.md|tests/test_settings_menu_docs.py|tests/test_contributing_build_from_source.py|tests/test_translation_recipe_gate.py|.github/sync-heartbeat|.github/workflows/ci.yml|.github/workflows/sync-original.yml|.github/workflows/keep-sync-alive.yml|.github/workflows/publish-luqa-launcher.yml|.github/workflows/maintainer-bot.yml) ;;
               *)
                 echo "::error::Unexpected fork change outside the preserved Luqa paths: $changed_path"
                 exit 1
@@ -80,6 +84,7 @@ jobs:
             echo "::error::Upstream changed a Luqa inline-weather anchor; manual review is required"
             exit 1
           }
+          if test -s "$companion_patch"; then git apply --3way "$companion_patch"; fi
           git checkout origin/main -- boxes fork/luqa-launcher-updater themes/family-gozo addons/gozo-football \
             tools/luqa-update.sh \
             .github/sync-heartbeat .github/workflows/sync-original.yml \

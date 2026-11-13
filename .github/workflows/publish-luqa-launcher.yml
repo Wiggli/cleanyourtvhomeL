@@ -9,6 +9,7 @@ on:
     paths:
       - "launcher/**"
       - "addons/gozo-football/**"
+      - "addons/weather/**"
       - "fork/luqa-launcher-updater/**"
       - ".github/workflows/publish-luqa-launcher.yml"
 
@@ -110,6 +111,14 @@ jobs:
             -Pandroid.injected.signing.key.alias=androiddebugkey \
             -Pandroid.injected.signing.key.password=android
 
+      - name: Test and build Weather
+        run: |
+          launcher/gradlew -p addons/weather --no-daemon --no-build-cache clean testReleaseUnitTest lintRelease assembleRelease \
+            -Pandroid.injected.signing.store.file="$LUQA_KEYSTORE_PATH" \
+            -Pandroid.injected.signing.store.password=android \
+            -Pandroid.injected.signing.key.alias=androiddebugkey \
+            -Pandroid.injected.signing.key.password=android
+
       - name: Verify packages and prepare release manifest
         env:
           VERSION_CODE: ${{ steps.version.outputs.code }}
@@ -120,8 +129,9 @@ jobs:
           cp launcher/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher.apk
           cp fork/luqa-launcher-updater/app/build/outputs/apk/release/app-release.apk dist/luqa-launcher-updater.apk
           cp addons/gozo-football/app/build/outputs/apk/release/app-release.apk dist/gozo-football.apk
+          cp addons/weather/app/build/outputs/apk/release/app-release.apk dist/luqa-weather.apk
           expected_cert=22651e080d08aaf602c40910462d2347f4969c299d8467797560a886c1f32548
-          for apk in dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk; do
+          for apk in dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/luqa-weather.apk; do
             cert=$("$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --print-certs "$apk" |
               sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
             test "$cert" = "$expected_cert" || {
@@ -150,11 +160,11 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view luqa-launcher-latest >/dev/null 2>&1; then
-            gh release upload luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/update.json --clobber
+            gh release upload luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/luqa-weather.apk dist/update.json --clobber
             gh release edit luqa-launcher-latest --title "Luqa launcher $VERSION_NAME" \
               --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           else
-            gh release create luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/update.json \
+            gh release create luqa-launcher-latest dist/luqa-launcher.apk dist/luqa-launcher-updater.apk dist/gozo-football.apk dist/luqa-weather.apk dist/update.json \
               --target "$GITHUB_SHA" --title "Luqa launcher $VERSION_NAME" \
               --notes "Verified launcher update from $GITHUB_SHA. A provisioned Luqa updater installs it automatically."
           fi
