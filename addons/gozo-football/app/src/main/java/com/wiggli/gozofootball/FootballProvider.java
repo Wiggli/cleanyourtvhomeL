@@ -29,7 +29,8 @@ import java.util.concurrent.Future;
 /** Read-only signed bridge that gives the Gozo launcher the next selected fixture. */
 public final class FootballProvider extends ContentProvider {
     public static final String AUTHORITY = "com.wiggli.gozofootball.fixtures";
-    private static final String[] COLUMNS = {"headline", "fixture", "detail"};
+    private static final String[] COLUMNS = {"headline", "fixture", "detail", "home_name", "away_name",
+            "competition", "match_time", "home_crest", "away_crest"};
     private static final long CACHE_MS = 15L * 60L * 1000L;
     private static Candidate cached;
     private static long cachedAt;
@@ -68,7 +69,11 @@ public final class FootballProvider extends ContentProvider {
             String detail = (live ? score(next.ourScore) + " – " + score(next.theirScore)
                     + "  ·  " + next.status : when(next.kickoff)) + "  ·  " + next.competition;
             cursor.addRow(new Object[] {live ? "FOOTBALL  ·  LIVE" : "FOOTBALL  ·  NEXT",
-                    pairing, detail});
+                    pairing, detail, next.home ? next.team : next.opponentFull,
+                    next.home ? next.opponentFull : next.team, next.competition,
+                    live ? next.homeScore() + " – " + next.awayScore() + "  " + next.status : when(next.kickoff),
+                    crest(next.home ? next.teamId : next.opponentId),
+                    crest(next.home ? next.opponentId : next.teamId)});
         }
         return cursor;
     }
@@ -146,6 +151,8 @@ public final class FootballProvider extends ContentProvider {
             String state = type == null ? "pre" : type.optString("state", "pre");
             String statusText = type == null ? "Live" : type.optString("shortDetail", "Live");
             String opponent = null;
+            String opponentFull = "";
+            int opponentId = 0;
             String ourScore = "";
             String theirScore = "";
             boolean home = false;
@@ -163,15 +170,32 @@ public final class FootballProvider extends ContentProvider {
                     home = "home".equals(competitor.optString("homeAway"));
                 } else {
                     opponent = team.optString("shortDisplayName", team.optString("displayName", "Opponent"));
+                    opponentFull = team.optString("displayName", opponent);
+                    opponentId = team.optInt("id");
                     theirScore = value;
                 }
             }
             return !foundTeam || opponent == null ? null : new Candidate(selected.name, selected.shortName, opponent,
                     MatchdayFeed.leagueLabel(event, competitionSlug), state, statusText, kickoff, home,
-                    ourScore, theirScore);
+                    ourScore, theirScore, opponentFull, selected.espnId, opponentId);
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private static final android.util.LruCache<Integer, byte[]> CRESTS = new android.util.LruCache<>(16);
+
+    private static byte[] crest(int id) {
+        if (id <= 0) return null;
+        byte[] cached = CRESTS.get(id);
+        if (cached != null) return cached;
+        android.graphics.Bitmap bitmap = TeamCrests.load(id);
+        if (bitmap == null) return null;
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+        if (!bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, bytes)) return null;
+        byte[] image = bytes.toByteArray();
+        CRESTS.put(id, image);
+        return image;
     }
 
     private static String when(long millis) {
@@ -211,9 +235,12 @@ public final class FootballProvider extends ContentProvider {
         final String team, shortName, opponent, competition, state, status, ourScore, theirScore;
         final long kickoff;
         final boolean home;
+        final String opponentFull;
+        final int teamId, opponentId;
 
         Candidate(String team, String shortName, String opponent, String competition, String state,
-                  String status, long kickoff, boolean home, String ourScore, String theirScore) {
+                  String status, long kickoff, boolean home, String ourScore, String theirScore,
+                  String opponentFull, int teamId, int opponentId) {
             this.team = team;
             this.shortName = shortName;
             this.opponent = opponent;
@@ -224,7 +251,13 @@ public final class FootballProvider extends ContentProvider {
             this.home = home;
             this.ourScore = ourScore;
             this.theirScore = theirScore;
+            this.opponentFull = opponentFull;
+            this.teamId = teamId;
+            this.opponentId = opponentId;
         }
+
+        String homeScore() { return score(home ? ourScore : theirScore); }
+        String awayScore() { return score(home ? theirScore : ourScore); }
 
         boolean isLive() {
             return "in".equals(state);

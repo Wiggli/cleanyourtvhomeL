@@ -72,6 +72,13 @@
                     android:textColor="#E3F0FF"
                     android:textSize="20sp" />
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/currentSymbol"
+                android:layout_width="84dp"
+                android:layout_height="84dp"
+                android:layout_marginStart="24dp"
+                android:importantForAccessibility="no" />
         </LinearLayout>
 
         <TextView

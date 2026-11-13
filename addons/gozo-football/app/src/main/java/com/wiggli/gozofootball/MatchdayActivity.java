@@ -3,7 +3,6 @@ package com.wiggli.gozofootball;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -29,8 +28,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.lang.ref.WeakReference;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -644,13 +641,16 @@ public final class MatchdayActivity extends Activity {
         LinearLayout hero = row();
         hero.setGravity(Gravity.CENTER_VERTICAL);
         hero.setPadding(dp(18), dp(12), dp(18), dp(12));
-        hero.setBackground(surface(SURFACE));
-        addWeighted(hero, teamMark(selectedGame.home, selectedGame.homeId, 22, 38));
+        GradientDrawable board = surface(SURFACE);
+        board.setOrientation(GradientDrawable.Orientation.TL_BR);
+        board.setColors(new int[]{0xff284765, 0xff142236});
+        hero.setBackground(board);
+        addWeighted(hero, featuredTeam(selectedGame.home, selectedGame.homeId));
         TextView scoreboard = centred(score, 32, INK);
         scoreboard.setPadding(dp(20), dp(5), dp(20), dp(5));
         scoreboard.setBackground(surface(0x66101827));
         hero.addView(scoreboard);
-        addWeighted(hero, teamMark(selectedGame.away, selectedGame.awayId, 22, 38));
+        addWeighted(hero, featuredTeam(selectedGame.away, selectedGame.awayId));
         addCard(content, hero);
         String date = selectedGame.kickoffTbd ? DAY.format(Instant.ofEpochMilli(selectedGame.time)
                 .atZone(java.time.ZoneId.systemDefault())) + "  ·  Kickoff TBD"
@@ -1204,16 +1204,39 @@ public final class MatchdayActivity extends Activity {
     private LinearLayout teamMark(String name, int id, int textSize, int iconSize) {
         LinearLayout team = row();
         team.setGravity(Gravity.CENTER_VERTICAL);
-        ImageView crest = new ImageView(this);
-        crest.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        crest.setPadding(dp(2), dp(2), dp(2), dp(2));
-        crest.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(iconSize), dp(iconSize));
         params.setMargins(dp(8), 0, dp(8), 0);
-        team.addView(crest, params);
+        team.addView(crestView(name, id), params);
         team.addView(label(name, textSize, INK, true), new LinearLayout.LayoutParams(0, -2, 1));
-        loadCrest(id, crest);
         return team;
+    }
+
+    private LinearLayout featuredTeam(String name, int id) {
+        LinearLayout team = column();
+        team.setGravity(Gravity.CENTER);
+        team.setPadding(dp(10), 0, dp(10), 0);
+        team.addView(crestView(name, id), new LinearLayout.LayoutParams(dp(58), dp(58)));
+        TextView title = centred(name, 21, INK);
+        title.setPadding(0, dp(5), 0, 0);
+        team.addView(title, new LinearLayout.LayoutParams(-1, -2));
+        return team;
+    }
+
+    private View crestView(String name, int id) {
+        android.widget.FrameLayout holder = new android.widget.FrameLayout(this);
+        holder.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        String initials = name.trim().isEmpty() ? "" : name.trim().substring(0, 1).toUpperCase(Locale.ROOT);
+        TextView fallback = centred(initials, 14, INK);
+        GradientDrawable badge = surface(SELECTED);
+        badge.setShape(GradientDrawable.OVAL);
+        fallback.setBackground(badge);
+        holder.addView(fallback, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        ImageView crest = new ImageView(this);
+        crest.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        crest.setPadding(dp(3), dp(3), dp(3), dp(3));
+        holder.addView(crest, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        loadCrest(id, crest);
+        return holder;
     }
 
     private void loadCrest(int id, ImageView target) {
@@ -1232,25 +1255,7 @@ public final class MatchdayActivity extends Activity {
         waiting.add(new WeakReference<>(target));
         crestRequests.put(id, waiting);
         images.execute(() -> {
-            Bitmap image = null;
-            HttpURLConnection connection = null;
-            try {
-                connection = (HttpURLConnection) new URL(
-                        "https://a.espncdn.com/i/teamlogos/soccer/500/" + id + ".png").openConnection();
-                connection.setConnectTimeout(3500);
-                connection.setReadTimeout(4000);
-                if (connection.getResponseCode() == 200) {
-                    BitmapFactory.Options options = new BitmapFactory.Options();
-                    options.inSampleSize = 4;
-                    try (java.io.InputStream body = connection.getInputStream()) {
-                        image = BitmapFactory.decodeStream(body, null, options);
-                    }
-                }
-            } catch (Exception ignored) {
-            } finally {
-                if (connection != null) connection.disconnect();
-            }
-            Bitmap loaded = image;
+            Bitmap loaded = TeamCrests.load(id);
             runOnUiThread(() -> {
                 List<WeakReference<ImageView>> targets = crestRequests.remove(id);
                 if (loaded == null) {
@@ -1267,7 +1272,9 @@ public final class MatchdayActivity extends Activity {
     }
 
     private void displayCrest(ImageView view, Bitmap crest) {
-        view.setBackground(surface(0xffdce5ef));
+        GradientDrawable badge = surface(0xffe3eef9);
+        badge.setShape(GradientDrawable.OVAL);
+        view.setBackground(badge);
         view.setImageBitmap(crest);
     }
 

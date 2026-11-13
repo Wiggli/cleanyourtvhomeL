@@ -132,6 +132,8 @@ public final class WeatherActivity extends Activity {
         ((TextView) findViewById(R.id.place)).setText(place.getString("name", ""));
         ((TextView) findViewById(R.id.temp)).setText(Forecast.degrees(r.tempC, fahrenheit) + "°");
         ((TextView) findViewById(R.id.sky)).setText(Forecast.sky(r.code, r.day));
+        ((android.widget.ImageView) findViewById(R.id.currentSymbol)).setImageDrawable(
+                new WeatherSymbol(r.code, r.day));
         StringBuilder feels = new StringBuilder();
         if (bothUnits) {
             feels.append(getString(fahrenheit ? R.string.other_unit_c : R.string.other_unit_f,
@@ -179,6 +181,8 @@ public final class WeatherActivity extends Activity {
             ((TextView) card.findViewById(R.id.dayName)).setText(d.date.getDayOfWeek()
                     .getDisplayName(compact ? TextStyle.SHORT : TextStyle.FULL, Locale.getDefault()));
             ((TextView) card.findViewById(R.id.daySky)).setText(Forecast.sky(d.code, true));
+            ((android.widget.ImageView) card.findViewById(R.id.daySymbol)).setImageDrawable(
+                    new WeatherSymbol(d.code, true));
             TextView high = card.findViewById(R.id.dayHigh);
             TextView low = card.findViewById(R.id.dayLow);
             high.setText(getString(R.string.forecast_high, Forecast.degrees(d.maxC, fahrenheit)));
