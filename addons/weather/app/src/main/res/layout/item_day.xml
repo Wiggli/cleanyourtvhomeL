@@ -27,12 +27,26 @@
         android:textColor="#FFFFFFFF"
         android:textSize="18sp" />
 
-    <TextView
-        android:id="@+id/dayTemps"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:fontFamily="sans-serif-light"
-        android:textColor="#FFFFFFFF"
-        android:textSize="26sp" />
+        android:layout_marginTop="9dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/dayHigh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="#FFFFFFFF"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/dayLow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textColor="#C3DFFF"
+            android:textSize="21sp" />
+    </LinearLayout>
 </LinearLayout>

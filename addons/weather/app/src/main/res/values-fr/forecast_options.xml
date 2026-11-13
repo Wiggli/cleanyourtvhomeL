@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="weather_settings">Réglages météo</string>
+    <string name="settings_done">Terminé</string>
+    <string name="setting_units">Unité de température</string>
+    <string name="unit_c">Celsius (°C)</string>
+    <string name="unit_f">Fahrenheit (°F)</string>
+    <string name="setting_both_units">Afficher les deux unités</string>
+    <string name="setting_days">Durée des prévisions</string>
+    <plurals name="day_count">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <string name="setting_humidity">Afficher l’humidité</string>
+    <string name="setting_wind">Afficher le vent</string>
+    <string name="setting_reset">Réinitialiser les réglages météo</string>
+    <string name="setting_value">%1$s · %2$s</string>
+    <string name="option_on">Activé</string>
+    <string name="option_off">Désactivé</string>
+</resources>

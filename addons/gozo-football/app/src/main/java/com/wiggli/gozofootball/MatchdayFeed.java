@@ -219,8 +219,8 @@ final class MatchdayFeed {
             this.time = time;
             JSONObject homeTeam = child(home, "team");
             JSONObject awayTeam = child(away, "team");
-            this.home = homeTeam.optString("shortDisplayName", homeTeam.optString("displayName", "Home"));
-            this.away = awayTeam.optString("shortDisplayName", awayTeam.optString("displayName", "Away"));
+            this.home = homeTeam.optString("displayName", homeTeam.optString("shortDisplayName", "Home"));
+            this.away = awayTeam.optString("displayName", awayTeam.optString("shortDisplayName", "Away"));
             homeId = homeTeam.optInt("id");
             awayId = awayTeam.optInt("id");
             state = status.optString("state", "pre");

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="forecast_high">Max. %1$d°</string>
+    <string name="forecast_low">Min. %1$d°</string>
+    <string name="forecast_today_range">Max. %1$d° · Min. %2$d°</string>
+</resources>
