@@ -168,8 +168,13 @@ jobs:
 
           agents = Path("AGENTS.md")
           text = agents.read_text(encoding="utf-8")
-          agents.write_text(text.replace("`maintainer-bot.yml`", "`sync-original.yml`"),
-                            encoding="utf-8")
+          ci = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+          limit = int(re.search(r'test "\$size" -lt (\d+)', ci).group(1))
+          text, matches = re.subn(r"(?m)^(\| APK size gate \| .*?under )[\d,]+ B \(\d+ KB\)",
+                                  lambda m: f"{m[1]}{limit:,} B ({limit // 1024} KB)", text)
+          if matches != 1:
+              raise RuntimeError("Could not update the APK size gate in AGENTS.md")
+          agents.write_text(text.replace("`maintainer-bot.yml`", "`sync-original.yml`"), encoding="utf-8")
           PY
 
           git add -A
@@ -204,7 +209,7 @@ jobs:
         run: |
           python3 -m venv tools/venv
           tools/venv/bin/pip install -q -r tools/requirements.txt
-          python3 -m unittest discover -s tests -v
+          tools/venv/bin/python -m unittest discover -s tests -v
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
