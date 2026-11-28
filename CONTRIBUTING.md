@@ -33,8 +33,12 @@ Every brand ships different bloat. If you ran the prompt (or did it by hand) on 
    updates", "needed for HDMI-CEC", etc.).
 2. Put the exact model name, Android version and firmware build in the header so people can tell
    whether it matches theirs. `tools/tv.py --probe` prints all three.
-3. Only list packages you have actually disabled and lived with for a few days. Note anything that
-   broke and what you re-enabled.
+3. Only list packages you have actually disabled and lived with for a few days. Restart the TV once with
+   the list applied and write in the header what held: the packages still disabled, Home still working
+   (on the launcher you installed, if you installed one), and Wi-Fi back on its own. Most headers here record that check
+   (`examples/amazon-fire-tv-stick-4k-max-2021/debloat.txt`: "Rebooted twice after applying: everything
+   below stayed disabled"), and a list PR without it is asked for the reboot before it is merged. Note
+   anything that broke and what you re-enabled.
 4. Add `examples/<brand>-<model>/tv.json`, the row the TV tables show for your list. Copy
    `examples/xiaomi-mi-tv-4a/tv.json`: `tv` (the model as the tables name it), `os`, `brand` (spelled as
    in the README's brand grid; a new brand is fine) and `notes` (one line: what the list disables and
@@ -44,8 +48,12 @@ Every brand ships different bloat. If you ran the prompt (or did it by hand) on 
    read shorter than `os` does in `examples/README.md`. Change nothing outside your folder: the TV table in
    `examples/README.md`, the brand grid in the READMEs and the counts are generated from every folder's
    `tv.json` after merging, so a PR that edits them only collides with the other open lists.
-5. If your TV's Live TV app or stock launcher has a different package name, say so in the header. Where
-   a script needs the stock launcher, `tools/restore.sh` takes it as its second argument
+5. If your TV's Live TV app or stock launcher has a different package name, say so in the header. If an
+   active line sends the stock launcher, the header also says what comes first: the new launcher installed
+   and set as Home, then the list. `tools/disable.sh` keeps the package the TV answers Home with
+   while nothing else can take Home, so a list applied in the other order leaves that line enabled and
+   disables a set smaller than the file says.
+   Where a script needs the stock launcher, `tools/restore.sh` takes it as its second argument
    (`tools/restore.sh <list> <package>`) and `launcher/build-and-install.sh` takes it in the
    environment, as `STOCK_LAUNCHER=<package>` (`-StockLauncher` on the PowerShell twin, and `none`
    keeps it enabled) - not as an argument. The launcher shows your Live TV app in its Inputs menu from

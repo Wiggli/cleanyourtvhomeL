@@ -35,6 +35,28 @@
 # Sony's HbbTV player, not packages, so they have no tile of their own: docs/devices/sony-youview-uk-catchup.md says
 # how to launch them and how to give each a Home tile.
 #
+# Fourth unit, US/Canada firmware (newer S159 build): Sony XBR-65X900H (BRAVIA_VH1, MediaTek MT5895),
+# Android TV 12 (API 31), build BRAVIA_VH1_UC-user 12 STT2.230505.001.S159 626461, security patch
+# 2026-08-01. Unlike the earlier S67 build on the XBR-55X900H above, tv.samba.ssm.ui is present and
+# ships enabled here. Off from the factory on this build (left in the list below for the EU/UK sets that
+# ship them enabled): com.apple.atve.sony.appletv, com.disney.disneyplus, com.google.android.play.games,
+# com.sony.dtv.b2b.devicepolicysettings, com.sony.dtv.b2b.softap, com.sony.dtv.b2b.vendorprotocol,
+# com.sony.dtv.homekit and com.sony.dtv.promos. Applied on 2026-11-14 in four batches; checked both with
+# CleanYourTV as Home (launcher/build-and-install.ps1 handed Home over cleanly with setupwraith left
+# enabled; the saved Wi-Fi belonged to android.uid.system) and with stock tvlauncher kept enabled while
+# tvrecommendations and the commented XBR-65X900H groups at the end were disabled. Lived with for 12 days
+# across reboots with an Xbox on HDMI 1 and a Sonos Beam on HDMI 3 (ARC/eARC, Bravia Sync): re-checked on
+# 2026-11-26 with zero drift and nothing re-enabled. On 2026-11-26 a follow-up pass also disabled
+# com.netflix.ninja and com.netflix.partner.ncm (already active below) plus com.google.android.partnersetup,
+# com.google.android.tts and com.sony.dtv.b2b.ipcontrolsettings (reboot-checked), followed by the four Sony
+# leftover packages at the end (same-day check, not yet lived with for days). Assistant (katniss,
+# voicesearch, assistantadapter), Chromecast built-in (mediashell), AirPlay (com.sony.dtv.airplayapp),
+# Backdrop (com.google.android.backdrop), YouTube, YouTube Music, Prime Video, UEI QuickSet
+# (com.uei.quicksetsdk.sony), smart-speaker linking (com.sony.dtv.smarthomesettings) and firmware updates
+# kept. Note: Android Private DNS, 0.5x animation scales and `pm trim-caches 999G` (/data went from 65% to
+# 50% used on the 4 GB partition) all worked cleanly across reboots; com.sony.dtv.b2b.hotelmode stays
+# disabled for user 0 while its persistent process still starts at boot (as on the China X9000H build).
+#
 # Lived with for weeks on a KD-55XH9096 (Spain/EU) with CleanYourTV; Live TV, HDMI Inputs, Ethernet
 # and Chromecast still work. If something breaks, re-enable it with `pm enable <package>` and please report it.
 
@@ -92,3 +114,47 @@ com.google.android.tvlauncher
 com.google.android.katniss                     # Google Assistant voice
 com.netflix.ninja
 com.netflix.partner.ncm
+
+# XBR-65X900H (BRAVIA_VH1_UC, build S159): Sony IoT, usage agents, BRAVIA CAM (no camera on X900H) and Vewd
+# com.sony.dtv.seeds.iot
+# com.sony.dtv.seeds.iot.remotestart
+# com.sony.dtv.seeds.auth
+# com.sony.dtv.usercontext                     # usage agent
+# com.sony.dtv.lastaccess                      # usage agent
+# com.sony.dtv.ecodashboard                    # Eco dashboard
+# com.sony.dtv.sonyloglevelsettingsys
+# com.vewd.core.service                        # Vewd (Opera TV) HTML5 store service
+# com.sony.dtv.sensingcamera.fwupdate          # BRAVIA CAM firmware updater
+# com.sony.dtv.sensingcamera.settings          # BRAVIA CAM settings
+# com.sony.dtv.sensingfusionservice            # BRAVIA CAM sensing service
+# com.sony.dtv.distancealert                   # BRAVIA CAM viewing distance alert
+
+# XBR-65X900H (BRAVIA_VH1_UC, build S159): hotel/B2B Node.js and pro-mode stack
+# com.sony.dtv.b2b.noderuntime.normal
+# com.sony.dtv.b2b.noderuntime.privilege
+# com.sony.dtv.b2b.noderuntimeextension.bpk
+# com.sony.dtv.b2b.noderuntimeextension.node_20_11_1
+# com.sony.dtv.b2b.prosettings
+# com.sony.dtv.b2b.adminpassword
+# com.sony.dtv.b2b.deviceadminsettings
+# com.sony.dtv.b2b.importexport
+# com.sony.dtv.b2b.ipcontrolsettings
+# com.sony.dtv.b2b.frameworkextension
+# com.sony.dtv.b2b.webappruntimedrm
+
+# XBR-65X900H (BRAVIA_VH1_UC, build S159): DLNA renderer/server (Chromecast and AirPlay are separate) and calendar/contacts providers
+# com.sonyericsson.dlna
+# com.sony.huey.dlna.module
+# com.sony.huey.dlna.renderersettings
+# com.google.android.syncadapters.calendar
+# com.android.providers.calendar
+# com.android.providers.contacts
+# com.android.providers.userdictionary
+
+# XBR-65X900H (BRAVIA_VH1_UC, build S159): follow-up pass (2026-11-26; reboot-checked for partnersetup/tts, same-day check for the Sony leftovers, not yet lived with for days)
+# com.google.android.partnersetup                # Google RLZ install-attribution provider
+# com.google.android.tts                         # Google text-to-speech (unused with TalkBack off)
+# com.sony.dtv.notificationcenter                # BRAVIA notifications inbox
+# com.sony.dtv.QuickSetupCustomizer              # first-time setup customizer
+# com.sony.dtv.customersupport.provider.res      # resource provider for disabled customersupport
+# com.sony.dtv.serviceinformation                # Sony service/warranty info stub

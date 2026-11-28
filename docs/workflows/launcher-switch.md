@@ -13,24 +13,36 @@ The core takes a switch only if it changes nothing until a theme or `config.xml`
    `tests/test_switches.py` refuses a Keys row without one, so the two go in the same pull request and the
    site's Switches tab picks it up from there.
 4. If it adds a row to Launcher settings, put its strings in `launcher/app/src/main/res/values/strings.xml`
-   and every `values-*` folder.
+   and every `values-*` folder, and name the row in `docs/launcher.md`'s list of the rows the page shows
+   (under **Launcher settings and the default home**), as the label the TV shows it with:
+   `tests/test_launcher_settings_rows.py` reads the layout and the strings, so a row it cannot find in
+   that list fails with `[('demoSwitch', 'Demo switch')] != []`.
 5. With the key off, nothing new runs: no receiver, no service, no write, no permission grant in the install
    script. The bot checks this in the diff, not in the description.
 6. Add a JVM unit test under `launcher/app/src/test/java/com/gathin/tvhome/` for any logic that can be tested
    without a TV.
-7. Keep it small: a switch should cost a few hundred bytes to about 1 KB of APK. Build and check the size
-   gate; the gate is hard. The size is also printed on the front pages, so a switch that moves it updates
-   `STATS` in `tools/readme_stats.py` - the number `docs/card.jpg` is drawn from, and what each page's alt
-   text describes - and the `about N KB` in every `README*.md` that shows that card: its alt text, the
-   `launcher/build-and-install.sh` Tools row and the Launcher section's first sentence, in each page's own
+7. Keep it small, and measure the room before you design it: the gate's ceiling is in
+   `.github/workflows/ci.yml`, and little is left under it, so build the launcher and subtract the APK's size
+   from that ceiling rather than working from the rounded figure the front pages print. A switch has to be
+   tiny, and it may not fit at all - what room is left goes to fixes of wrong behaviour first,
+   so a preference that does not fit belongs in a fork with one row in `SHOWCASE.md`. Say what it costs in
+   bytes in the pull request. The size is printed on the front pages as well, so a switch that moves it
+   updates `STATS` in `tools/readme_stats.py` - the number `docs/card.jpg` is drawn from, and what each
+   page's alt text describes - and the `about N KB` in every `README*.md` that shows that card: its alt text,
+   the `launcher/build-and-install.sh` Tools row and the Launcher section's first sentence, in each page's own
    words.
 8. Verify on a real TV with the switch on and off, D-pad from every edge, and attach screenshots.
 9. If you can, run the regression check in [`perf-ab.md`](perf-ab.md) with the
    switch on: a baseline before you start, your build after, and the numbers in the PR. It's optional, but welcome.
 
 Anything TV-specific goes in `config.xml` or a theme, not in code. A bug fix that corrects wrong behaviour needs
-no switch. No new dependencies in `launcher/app/build.gradle` without an issue first.
+no switch. A switch does not bring a new permission either: the shared launcher holds the ones its features need,
+and one that asks for another in the manifest belongs in a fork with one row in `SHOWCASE.md`, the way step 7
+treats a switch too big for the size gate - being off by default does not make it fit. No new dependencies in
+`launcher/app/build.gradle` without an issue first.
 
 Then run the tests with the checkout's venv: `tools/venv/bin/python -m unittest discover -s tests -v`.
 [`README.md`'s by-hand block](../../README.md) builds it, and it is where `tools/requirements.txt` puts the
-`adb_shell` and Pillow the suite imports - under the system `python3` those checks skip and the run still says OK.
+`adb_shell` the suite imports - under the system `python3` those checks skip and the run still says OK. The
+picture, card and wallpaper checks need Pillow as well: `tools/requirements-perf.txt` adds it, and without it
+they are reported as skips, not failures.

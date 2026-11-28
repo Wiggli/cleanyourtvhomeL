@@ -24,6 +24,17 @@ Servono JDK 17 e Android SDK platform 34. Su macOS: `brew install openjdk@17 and
 `sdkmanager "platforms;android-34" "build-tools;34.0.0"`. Su Linux lo script di installazione trova
 `~/Android/Sdk` e il `java` nel tuo PATH.
 
+La compilazione legge una sola proprietà di progetto, `launcherApplicationId`
+([`launcher/app/build.gradle`](../../launcher/app/build.gradle)), e risponde `com.gathin.tvhome` quando non le
+viene passata. Esiste perché alcuni firmware accettano come Home solo un nome di pacchetto che hanno in
+elenco, quindi quegli apparecchi si compilano con un altro id: `com.ts.launcher` su uno Xiaomi del mercato
+cinese, `com.coocaa.cleanhome` su un Coocaa. `launcher/build-and-install.sh` compila e installa l'id
+predefinito, quindi un apparecchio che ne vuole un altro si compila e si installa a mano:
+`./gradlew assembleRelease -PlauncherApplicationId=<id>` lascia l'APK in
+`launcher/app/build/outputs/apk/release/app-release.apk`. Le [note sui dispositivi](../devices/) e la
+[Risoluzione dei problemi](../TROUBLESHOOTING.md) (entrambe in inglese) dicono quale id vuole ciascuno di
+quegli apparecchi.
+
 ## Configurazione
 
 [`config.xml`](../../launcher/app/src/main/res/values/config.xml) imposta:
@@ -125,12 +136,14 @@ tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.Clock
 - Un prefisso `hold:` su una voce di `app_keys` dà a quel tasto una seconda app: una pressione normale apre l'app senza
   prefisso, tenendolo premuto mezzo secondo si apre quella con `hold:` (per codice del tasto o `hold:scan:...`). Una voce
   può nominare un'attività (`pacchetto/.Attivita`), come la barra rapida di un add-on, invece della voce di avvio
-  dell'app. Un prefisso `front:` stabilisce cosa apre un tocco mentre l'app di quel tasto è già in primo piano
-  (solo `HomeKeyService`).
+  dell'app. Un prefisso `front:` stabilisce cosa apre un tocco mentre l'app di quel tasto è già in primo piano.
+  Richiede `HomeKeyService` collegato (`HOME_KEY_SERVICE=1`); `InputKeyService` lo segue allora.
 - Al posto di un'app, una voce di `app_keys` può nominare un'azione: `back`, `home`, `recents`, `mute`, `sleep`
   (standby, Android 9 e successivi), `screensaver`, `settings`, `wifi`, `library` (Home con la libreria app aperta, per
   il tasto App di un telecomando; richiede `app_library`) oppure `ignore` (il tasto non fa nulla), così un tasto colorato
-  libero può mettere la TV in muto o, tenuto premuto, in standby.
+  libero può mettere la TV in muto o, tenuto premuto, in standby. `action:<intent action>` avvia quell'azione di
+  intent, per una schermata del produttore che si chiude da sola se non la si apre così, come il pannello
+  immagine di TCL (`action:android.settings.DISPLAY_SETTINGS`).
 - `HOME_KEY_SERVICE=1` sistema anche le chiavette il cui tasto Home invia ALL_APPS, e apre le Impostazioni dal tasto
   **ingranaggio** del telecomando, anche se Android non lo assegna (codici di scansione o dei tasti in config.xml).
 - Con `settings_key_panel` l'ingranaggio apre un [piccolo pannello di impostazioni rapide](../quick-settings-panel.jpg)

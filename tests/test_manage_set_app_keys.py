@@ -13,8 +13,8 @@ whole rule a list of package names needs - but app_keys is read again, entry by 
 and parseAppScancodes() reads `scan:<digits>:<target>` the same way, so an entry whose key is not a keycode or a
 KEYCODE_ name, whose keycode is 0, whose scancode is not a number, or that has no colon or no target is skipped
 without a word. The same is true one step later: launch() opens a target that is an action word (isAction()'s
-ten), "inputs", "input:<id>", "guide:<package>", a "package/.Activity" or a package, and anything else -
-"youtube" without its dots, "guide:" with no package - finds no launch intent and does nothing. Nothing on the TV
+ten), "inputs", "input:<id>", "guide:<package>", "action:<intent action>", a "package/.Activity" or a package,
+and anything else - "youtube" without its dots, "guide:" with no package - finds no launch intent and does nothing. Nothing on the TV
 says which button went dead, so such a list reads as written and half works.
 
 Run from the repository root: python3 -m unittest discover -s tests -v
@@ -45,6 +45,7 @@ GOOD = [
     "4001:guide:com.tcl.tv",
     "hold:190:com.netflix.ninja",
     "front:172:guide:com.vt.tv.tvcenter",
+    "KEYCODE_PROG_GREEN:action:android.settings.DISPLAY_SETTINGS",
     "scan:365:inputs",
     "KEYCODE_PROG_YELLOW:mute",
     "scan:586:ignore",
@@ -105,6 +106,12 @@ class AppKeysRefusalTest(unittest.TestCase):
         # `if (code > 0) keys.put(...)`: 0 is KEYCODE_UNKNOWN, and the entry is dropped.
         self.refused('["0:com.netflix.ninja"]', "keycode 0 is not a button")
 
+    def test_keycode_unknown_is_refused(self):
+        # KEYCODE_UNKNOWN resolves to 0, so `code > 0` drops the entry.
+        for entry in ("KEYCODE_UNKNOWN:home", "hold:KEYCODE_UNKNOWN:home", "front:KEYCODE_UNKNOWN:home"):
+            with self.subTest(entry=entry):
+                self.refused(json.dumps([entry]), "keycode 0 is not a button")
+
     def test_a_scancode_that_is_not_a_number_is_refused(self):
         self.refused('["scan:abc:com.netflix.ninja"]', "'abc' is not a scancode")
         self.refused('["scan:0:com.netflix.ninja"]', "scancode 0 is not a button")
@@ -116,6 +123,8 @@ class AppKeysRefusalTest(unittest.TestCase):
         self.refused('["190:guide:"]', "guide: takes the Live TV app's package")
         self.refused('["190:guide:youtube"]', "guide: takes the Live TV app's package")
         self.refused('["190:input:"]', "input: names no input id")
+        self.refused('["190:action:"]', "action: takes an intent action")
+        self.refused('["190:action:DISPLAY_SETTINGS"]', "action: takes an intent action")
         self.refused('["190:com.netflix.ninja/"]', "names no activity after the slash")
 
     def test_an_entry_that_is_not_a_string_is_refused(self):
@@ -163,6 +172,13 @@ class AppKeyProblemTest(unittest.TestCase):
         self.assertIn("is nothing the launcher opens", manage.app_key_problem("190:Settings"))
         self.assertIn("not a string", manage.app_key_problem(190))
 
+    def test_a_space_before_the_scan_colon_is_still_a_scancode(self):
+        # parseAppScancodes() compares parts[0].trim() with "scan", so the launcher keeps these entries.
+        for entry in ("scan :490:com.wbd.hbomax", "hold:scan :490:org.xbmc.kodi"):
+            with self.subTest(entry=entry):
+                self.assertIsNone(manage.app_key_problem(entry))
+        self.assertIn("not a scancode", manage.app_key_problem("scan :abc:com.wbd.hbomax"))
+
     def test_a_hold_entry_is_held_to_the_same_rules(self):
         # prefixed() strips "hold:" and hands the rest to parseAppKeys(), so the key behind it has to read too.
         self.assertIn("not a key the launcher reads", manage.app_key_problem("hold:HOME:com.x.y"))
@@ -205,6 +221,7 @@ class TheLauncherTest(unittest.TestCase):
         self.assertIn('static final String INPUTS = "inputs";', text)
         self.assertIn('target.startsWith("input:")', text)
         self.assertIn('target.startsWith("guide:")', text)
+        self.assertIn('pkg.startsWith("action:")', text)
         self.assertIn("target.indexOf('/') > 0", text)
 
 

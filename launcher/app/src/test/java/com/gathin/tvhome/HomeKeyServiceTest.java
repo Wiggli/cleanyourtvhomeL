@@ -7,6 +7,11 @@ import static org.junit.Assert.assertTrue;
 public class HomeKeyServiceTest {
     private static final long SOON = 45_000L;
 
+    @Test public void aKeyOnHomeWithNoHelperBoundDoesNothing() {
+        HomeKeyService.running = null;
+        HomeKeyService.keyOnHome();
+    }
+
     @Test public void aTapIsAShortPress() {
         assertTrue(HomeKeyService.isShortPress(1_000, 1_120, 400));
     }
@@ -56,5 +61,12 @@ public class HomeKeyServiceTest {
     @Test public void alwaysGoesHomeAfterScreenOnUntilAKey() {
         assertTrue(HomeKeyService.stillArmed(SOON, SOON + HomeKeyService.SCREEN_ON_WINDOW_MS));
         assertFalse(HomeKeyService.stillArmed(SOON, 0));
+    }
+
+    @Test public void looksAgainOnlyWhileTheStockHomeKeptTheScreen() {
+        assertTrue(HomeKeyService.redirectAgain(false, false, 2));
+        assertFalse(HomeKeyService.redirectAgain(true, false, 2));
+        assertFalse(HomeKeyService.redirectAgain(false, true, 2));
+        assertFalse(HomeKeyService.redirectAgain(false, false, 0));
     }
 }

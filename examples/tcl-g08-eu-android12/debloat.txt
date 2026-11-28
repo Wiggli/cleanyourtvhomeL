@@ -61,7 +61,7 @@ com.mediatek.support.webview
 
 # Mediatek casting/telemetry leftovers
 com.mediatek.airplaydaemon             # AirPlay daemon; keep it for AirPlay if com.mediatek.AirplayAPK is there
-com.mediatek.backgrounddetection
+# com.mediatek.backgrounddetection   # KEEP: on the standby path; disabled, deep standby (STR) aborts (#4499)
 com.mediatek.network
 
 # Google storefront and extras
@@ -101,5 +101,6 @@ com.google.android.play.games
 
 # Setup wizard: kept enabled here, and to be disabled only before installing a custom launcher.
 # Google TV's setup wizard claims Home (RecoveryActivity loop) once the stock launcher is disabled -
-# see launcher Troubleshooting #3. Uncomment it just before running launcher/build-and-install.sh.
+# see docs/TROUBLESHOOTING.md, "The new launcher still doesn't own Home". Uncomment it just before
+# running launcher/build-and-install.sh.
 # com.google.android.tungsten.setupwraith

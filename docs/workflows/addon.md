@@ -2,10 +2,22 @@
 
 **When to use this:** a widget or tile that can be its own small app, shown through a module card.
 
-1. Create `addons/<name>/` as its own Gradle project (`settings.gradle`, its own `gradlew` and `gradlew.bat`
+A change to an add-on that is already here needs its author's OK when it is a big rework, a new permission
+or a changed install script: say what you want to change and ask them for it in a comment on the pull
+request, since that is what the review of such a PR asks for. A small fix, or a change an issue asked for,
+needs no OK.
+
+1. Create `addons/<name>/` as its own Gradle project (`settings.gradle`, or `settings.gradle.kts` as
+   `addons/tv-hub` ships it - `tests/test_addons.py` accepts either - its own `gradlew` and `gradlew.bat`
    wrappers and an `app` module), with its own package name. Copy the two wrappers from an add-on that is
    already here: the add-on build names `./gradlew` on macOS and Linux and `gradlew.bat` in a Command Prompt,
-   and `tests/test_addons.py` refuses a folder without either one.
+   and `tests/test_addons.py` refuses a folder without either one. The scripts are not the whole wrapper:
+   `gradlew` runs `gradle-wrapper.jar` and reads `gradle-wrapper.properties` out of the gradle folder
+   beside it, so the two files alone stop at a missing class - copy those two as well, or take the
+   four-line `gradlew` and `gradlew.bat` several add-ons ship instead, which hand the build to
+   `launcher/gradlew` with `-p` and need no jar. Copy the root `build.gradle` too: the `app` module's
+   `plugins { id 'com.android.application' }` carries no version, and that file is where the plugin's is
+   declared, `apply false`.
 2. Copy a neighbour's `.gitignore` into the folder as well, so a build leaves nothing to commit: it keeps
    the Gradle output and the local.properties file Android Studio writes with your own SDK path out of
    git. `tests/test_addon_local_properties_ignored.py` asks git about each of those.
@@ -28,4 +40,6 @@
 
 Then run the tests with the checkout's venv: `tools/venv/bin/python -m unittest discover -s tests -v`.
 [`README.md`'s by-hand block](../../README.md) builds it, and it is where `tools/requirements.txt` puts the
-`adb_shell` and Pillow the suite imports - under the system `python3` those checks skip and the run still says OK.
+`adb_shell` the suite imports - under the system `python3` those checks skip and the run still says OK. The
+picture, card and wallpaper checks need Pillow as well: `tools/requirements-perf.txt` adds it, and without it
+they are reported as skips, not failures.

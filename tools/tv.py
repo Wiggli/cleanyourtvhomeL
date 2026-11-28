@@ -12,10 +12,11 @@ Set TV_HOST to the TV's IP (or IP:port). Usage:
     tv.py --reboot                     return once the reboot request is accepted; the TV may still be restarting
     tv.py --help                       this text; needs neither the venv nor a TV
 
-Exit status: 0 the command ran (the TV's own answer is in its output), 1 the screenshot came back
-empty or failed, a pull the TV did not send (the local file is left as it was), a push the TV refused
-(what it said, and that the file there may be incomplete), or a command's answer was lost when the TV
-dropped the connection,
+Exit status: 0 the command ran (the TV's own answer is in its output), or the reader stopped reading that
+answer before it was all out (a pager, `head`: the run printed as far as they read, which is not a
+failure), 1 the screenshot came back empty or failed, a pull the TV did not send (the local file is left
+as it was), a push the TV refused (what it said, and that the file there may be incomplete), or a
+command's answer was lost when the TV dropped the connection,
 2 it was refused before anything ran on the TV - a flag it does not have, one of its own with the wrong
 number of words, a local path that cannot be used, a port it could not open, or a TV_HOST that is a URL
 or a path instead of the TV's address. A flag and its count are
@@ -34,11 +35,46 @@ import subprocess
 import sys
 import time
 
+
+def stopped_reading():
+    """What a run answers when the reader closed the pipe before the answer was all out.
+
+    `tv.py <command> | head` or `| less` quits at the first screen, and the answer here is the TV's own
+    output, which for dumpsys or logcat is longer than the pipe the two share: the write then fails with
+    BrokenPipeError, which used to leave the reader a traceback and exit 1 - the status this docstring
+    keeps for a command whose answer was lost, or a screenshot or push that failed, none of which
+    happened. The command had already run on the TV and its answer was printed as far as the reader read,
+    so this is the 0 the docstring gives a command that ran.
+
+    stdout is pointed at /dev/null before returning, because the interpreter flushes it again at exit and
+    would print "Exception ignored in: ... BrokenPipeError" onto the stderr of a run that went fine.
+    """
+    try:
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+    except (AttributeError, OSError, ValueError):
+        pass
+    return 0
+
+
+WINDOWS = os.name == "nt"
+
+
+def reader_gone(e):
+    """True when e is the reader of stdout having gone: BrokenPipeError, or EINVAL from a pipe on Windows."""
+    return isinstance(e, BrokenPipeError) or (WINDOWS and getattr(e, "errno", None) == errno.EINVAL)
+
+
 # -h/--help before the adb_shell imports and before TV_HOST is read: the usage is the first thing a
 # reader types at a script they do not know, and it needs neither the venv nor a TV. The TV_HOST check
 # below exits at import time, so a flag handled after it could never print anything but that error.
 if sys.argv[1:2] and sys.argv[1] in ("-h", "--help"):
-    print((__doc__ or "").strip())
+    try:
+        print((__doc__ or "").strip())
+        sys.stdout.flush()
+    except OSError as e:
+        if not reader_gone(e):
+            raise
+        sys.exit(stopped_reading())
     sys.exit(0)
 
 USAGE = """usage:
@@ -162,7 +198,9 @@ def address_problem(raw):
     return None
 
 
-_raw_host = os.environ.get("TV_HOST")
+# Stripped: an address copied off a page or out of a file often carries a space or a newline, and the
+# socket read "192.168.1.50 " as a host name it could not find, so the TV and its network were blamed.
+_raw_host = (os.environ.get("TV_HOST") or "").strip()
 if not _raw_host:
     sys.exit("Set TV_HOST to your TV's IP address, e.g.  TV_HOST=192.168.1.50 tools/tv.py --probe\n"
              "(find it under Settings → Network, or look for the TV in `arp -a`)")
@@ -174,6 +212,12 @@ if _problem:
                      f"TV_HOST=192.168.1.50 tools/tv.py --probe\n")
     sys.exit(2)
 HOST, _endpoint_port = split_host_port(_raw_host)
+if not HOST:
+    # `:5555` or `[]:5555`: a port with no address in front of it, which the socket answered as a TV it
+    # could not reach.
+    sys.stderr.write(f"TV_HOST={_raw_host!r} has no address before the port. Pass the TV's IP, e.g.  "
+                     f"TV_HOST=192.168.1.50:5555 tools/tv.py --probe\n")
+    sys.exit(2)
 _port_str = _endpoint_port or os.environ.get("TV_PORT") or "5555"
 try:
     PORT = int(_port_str)
@@ -487,6 +531,14 @@ def transfer_args(args):
         usage_error("--pull needs the path on the TV to read")
     if not local:
         usage_error("--pull needs the local file to save to")
+    # The three shapes screenshot_target() refuses for the same reason: a blank name was written as a
+    # file called "   " and the run said "pulled", and a name ending in a separator, `.` or `..` was only
+    # found out by os.replace() after the TV had sent the whole file.
+    if not local.strip():
+        usage_error(f"--pull's local file is blank ({local!r}): name the file to save to")
+    if local.endswith(("/", os.sep)) or os.path.basename(local) in (".", ".."):
+        path_error(f"{local} names a folder, and --pull writes the file to the name it is given: give a "
+                   f"file name. Nothing was pulled.")
     folder = os.path.dirname(os.path.abspath(local))
     if not os.path.isdir(folder):
         path_error(f"there is no folder {folder} for {local}: create it, or pull into a folder that is "
@@ -693,13 +745,16 @@ def pull(dev, remote, local, announce=True):
 
     `announce=False` is for a caller that prints its own line about the file, as a capture does; a
     failure is reported either way, because it is the run's answer rather than a note about it."""
-    folder, name = os.path.split(os.path.abspath(local))
+    # open(local, "wb") follows a file symlink. Stage beside its target and replace that target,
+    # rather than replacing the link and leaving the file the reader meant unchanged.
+    destination = os.path.realpath(local) if os.path.islink(local) else local
+    folder, name = os.path.split(os.path.abspath(destination))
     part = os.path.join(folder, f".{name}.{os.getpid()}.part")
     try:
         dev.pull(remote, part, transport_timeout_s=300.0, read_timeout_s=300.0)
-        if os.path.exists(local):
-            shutil.copymode(local, part)
-        os.replace(part, local)
+        if os.path.exists(destination):
+            shutil.copymode(destination, part)
+        os.replace(part, destination)
     except Exception as e:
         try:
             os.remove(part)
@@ -754,6 +809,25 @@ def push(dev, local, remote):
 
 
 def main():
+    # A reader who closed the pipe is not a failed command: _run answers the status the work deserves, and
+    # this is the one place that turns the reader going away into the 0 stopped_reading() explains. The
+    # flush is here because a short answer stays in the buffer until the interpreter's own last flush,
+    # where the same BrokenPipeError arrives as "Exception ignored in: ... BrokenPipeError" and status 120
+    # instead of a status this docstring defines. A reader gone at that flush leaves the run's own status.
+    try:
+        code = _run()
+    except BrokenPipeError:
+        return stopped_reading()
+    try:
+        sys.stdout.flush()
+    except OSError as e:
+        if not reader_gone(e):
+            raise
+        stopped_reading()
+    return code
+
+
+def _run():
     args = sys.argv[1:]
     check_arity(args)
     batch_lines = None

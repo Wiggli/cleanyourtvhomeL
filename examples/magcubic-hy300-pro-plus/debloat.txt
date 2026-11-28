@@ -23,6 +23,10 @@
 # [CleanYourTV discussion](https://github.com/Gathin23/cleanyourtv/discussions/2074#discussioncomment-19471670).
 # TLS ADB may need the stock `adb` via `TV_ADB_BINARY`; see [native ADB notes](../../tools/native-adb.md).
 #
+# On Projector.20260820.173302 the Wireless debugging switch this paragraph pairs through also comes back off
+# at every reboot, not only the port, and the first time it is turned on there the projector black-screens
+# until a power cycle - a second enable then works (#4296, one unit on a later build).
+#
 # Home: with the stock launcher left enabled (STOCK_LAUNCHER=none) the firmware opens com.htc.magcubicos at
 # every boot whatever the default Home, and stock_home_redirect does not help: something with the system uid
 # clears enabled_accessibility_services within seconds, so HomeKeyService never stays bound. Disabling the
@@ -31,9 +35,42 @@
 # nothing; auto keystone and autofocus (com.hysd.vafocus) stay on. Wi-Fi and Bluetooth are in Android's
 # settings (the Settings pill).
 #
+# The tile Settings hold more than that keystone screen: on Projector.20260820.173302 the report in #4296
+# found manual 4-corner keystone, the horizontal zero point (InitAngle), zoom, projection flip and the PQ
+# adjustments all unavailable once com.htc.magcubicos is disabled, with only the G-sensor auto keystone
+# (com.hysd.vafocus) left running on its own. The board's driver is no substitute for the screen either:
+# reading /sys/class/prj/bl_duty reboots the projector on that build, so do not
+# read it.
+#
 # Inputs: com.softwinner.vis lists HDMI1-3 and CVBS1-2, but nothing on this firmware handles the
 # passthrough URI as a TV app (ACTION_VIEW on it resolves to OfficeSuite), so config.json sends the Inputs
 # pill to Allwinner's own source picker, com.softwinner.awsource.
+#
+# That picker is wider than the hardware: on Projector.20260820.173302 the report in #4296 found it offering
+# several virtual HDMI and CVBS ports on a projector with a single HDMI input, so a reader who picks one of
+# the others gets nothing back, and the stock launcher on that build opens
+# com.softwinner.awlivetv/.MainActivity rather than the picker. An owner who would rather have the stock
+# panel can point config.json at it - com.softwinner.awlivetv is kept enabled below either way:
+#
+#   "source_panel_service": "com.softwinner.awlivetv/com.softwinner.awlivetv.MainActivity"
+#
+# The shipped config.json keeps the picker, because that is what the unit this header was written on ran
+# (Inputs > HDMI1 is in the working list above); the swap is reported from one other unit on a later build.
+#
+# That swap is not free on every board. awlivetv opens the port its string extra "input_source" names and
+# falls back to HDMI3 when the extra is missing, and config.json cannot send one: source_panel_extra
+# carries a whole number as an int extra only, so "input_source=HDMI2" there is dropped without a word. On
+# one HY300 Pro+ in #4296 the only wired port was HDMI2 - dumpsys tv_input put
+# com.softwinner.vis/.HdmiInputService/HW2 at state 0 with HW1 and HW3 at state 1, and
+# /product/etc/config.ini and persist.sys.hdmisource both say HDMI2 - so the panel came up on the unwired
+# HDMI3 and showed "No Signal" over a live source; started by hand it locked on at once (logcat:
+# SubDeviceSetSourceAsync to kHalSourceID_HDMI_2, then onVideoAvailable inputId .../HW2, 3840x2160 30Hz):
+#
+#   tools/tv.py 'am start -n com.softwinner.awlivetv/.MainActivity --es input_source HDMI2'
+#
+# That report carries no build string - Projector.20260820.173302 above is the first unit's - so read
+# dumpsys tv_input for the port that is connected before trusting any row, and open the panel with the
+# extra rather than through the Inputs pill when the wired port is not HDMI3.
 #
 # Kept on purpose:
 # - com.htc.magcubicos: Home, disabled by the install script, not by this list.
@@ -58,4 +95,6 @@ com.android.bips
 # com.mphotool.airplay                 # AirPlay receiver (ScreenCast)
 # com.mphotool.dlna                    # DLNA receiver (ScreenCast)
 # com.softwinner.miracastReceiver      # Miracast; re-enable if you cast from a phone
-# com.android.toofifi                  # phone-remote service on port 8899 (no auth), mic, camera, location
+# com.android.toofifi                  # phone-remote service on port 8899 (no auth), mic, camera, location; a
+#                                       # second owner on this firmware lost screen casting with it off (#4296),
+#                                       # so keep it on if you cast
